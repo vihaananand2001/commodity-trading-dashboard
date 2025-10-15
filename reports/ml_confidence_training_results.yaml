@@ -1,0 +1,38 @@
+strategy_results:
+  Silver 4H Long - Breakout 20:
+    reason: No training data
+    samples: 0
+    status: FAILED
+    training_time: 0
+  Silver 4H Long - Doji:
+    reason: No training data
+    samples: 0
+    status: FAILED
+    training_time: 0
+  Silver 4H Long - Evening Star:
+    reason: No training data
+    samples: 0
+    status: FAILED
+    training_time: 0
+  Silver 4H Long - Morning Star:
+    reason: No training data
+    samples: 0
+    status: FAILED
+    training_time: 0
+  Silver 4H Long - Outside Bar:
+    reason: No training data
+    samples: 0
+    status: FAILED
+    training_time: 0
+  Silver 4H Long - Three White Soldiers:
+    reason: No training data
+    samples: 0
+    status: FAILED
+    training_time: 0
+training_summary:
+  commodity: silver
+  failed: 6
+  successful: 0
+  timeframe: 4h
+  total_strategies: 6
+  training_date: '2025-10-14T17:20:51.595662'

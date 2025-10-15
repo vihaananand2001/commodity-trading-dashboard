@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCX Live Trading Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --dark-color: #34495e;
+            --light-color: #ecf0f1;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--secondary-color), #5dade2);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: bold;
+        }
+
+        .price-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .change-positive {
+            color: var(--success-color);
+        }
+
+        .change-negative {
+            color: var(--danger-color);
+        }
+
+        .confidence-badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .confidence-very-high {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .confidence-high {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .confidence-medium {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .confidence-low {
+            background-color: #e67e22;
+            color: white;
+        }
+
+        .confidence-very-low {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .signal-card {
+            border-left: 5px solid var(--secondary-color);
+            margin-bottom: 1rem;
+        }
+
+        .signal-card.high-confidence {
+            border-left-color: var(--success-color);
+        }
+
+        .signal-card.medium-confidence {
+            border-left-color: var(--warning-color);
+        }
+
+        .signal-card.low-confidence {
+            border-left-color: var(--danger-color);
+        }
+
+        .position-calculator {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .market-status {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .refresh-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .refresh-btn {
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .refresh-icon.spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Past Signals Styling */
+        .past-signals-summary .stat-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .past-signals-summary .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .past-signals-summary .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .table th {
+            border-top: none;
+            font-weight: 600;
+        }
+        .badge {
+            font-size: 0.75rem;
+        }
+
+        .commodity-selector {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .btn-commodity {
+            margin: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            border: none;
+        }
+
+        .btn-silver {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+            border: none;
+        }
+
+        .btn-commodity.active {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .timeframe-selector {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .btn-timeframe {
+            margin: 0.25rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: 2px solid var(--secondary-color);
+            background: white;
+            color: var(--secondary-color);
+            transition: all 0.3s ease;
+        }
+
+        .btn-timeframe.active {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 1rem 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--secondary-color);
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert-custom {
+            border-radius: 10px;
+            border: none;
+            margin-bottom: 1rem;
+        }
+
+        .performance-metrics {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line me-2"></i>
+                MCX Live Trading Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <div id="market-status" class="nav-item">
+                    <span class="badge bg-success" id="market-indicator">MARKET OPEN</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Market Status -->
+    <div class="market-status">
+        <div class="card">
+            <div class="card-body p-2">
+                <small class="text-muted">Last Update:</small><br>
+                <strong id="last-update">--:--</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refresh Controls -->
+    <div class="refresh-indicator">
+        <div class="card">
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted">Next Update:</small><br>
+                        <strong id="next-update">--:--</strong>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="forceRefreshData()" id="refresh-btn" 
+                            data-bs-toggle="tooltip" data-bs-placement="left" 
+                            title="Force refresh all data (F5 or Ctrl+R)">
+                        <i class="fas fa-sync-alt" id="refresh-icon"></i>
+                        <span id="refresh-text">Refresh</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        <!-- Commodity Selector -->
+        <div class="commodity-selector">
+            <h5 class="mb-3"><i class="fas fa-coins me-2"></i>Select Commodity</h5>
+            <div class="text-center">
+                <button class="btn btn-commodity btn-gold active" onclick="selectCommodity('GOLD')">
+                    <i class="fas fa-gem me-2"></i>GOLD
+                </button>
+                <button class="btn btn-commodity btn-silver" onclick="selectCommodity('SILVER')">
+                    <i class="fas fa-circle me-2"></i>SILVER
+                </button>
+            </div>
+        </div>
+
+        <!-- Timeframe and Date Range Selector -->
+        <div class="timeframe-selector">
+            <h5 class="mb-3"><i class="fas fa-clock me-2"></i>Select Timeframe & Date Range</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="text-center mb-3">
+                        <label class="form-label"><strong>Timeframe:</strong></label>
+                        <div>
+                            <button class="btn btn-timeframe active" onclick="selectTimeframe('1h')">1 Hour</button>
+                            <button class="btn btn-timeframe" onclick="selectTimeframe('4h')">4 Hour</button>
+                            <button class="btn btn-timeframe" onclick="selectTimeframe('1d')">1 Day</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-center mb-3">
+                        <label class="form-label"><strong>Date Range:</strong></label>
+                        <div>
+                            <button class="btn btn-timeframe active" onclick="selectDateRange('1d')">1 Day</button>
+                            <button class="btn btn-timeframe" onclick="selectDateRange('1w')">1 Week</button>
+                            <button class="btn btn-timeframe" onclick="selectDateRange('1m')">1 Month</button>
+                            <button class="btn btn-timeframe" onclick="selectDateRange('3m')">3 Months</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <label class="form-label"><strong>Trend Analysis:</strong></label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="show-trend-lines" checked onchange="toggleTrendLines()">
+                        <label class="form-check-label" for="show-trend-lines">
+                            Show Trend Lines
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="show-support-resistance" checked onchange="toggleSupportResistance()">
+                        <label class="form-check-label" for="show-support-resistance">
+                            Show Support/Resistance
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Live Price Display -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line me-2"></i>Live Price</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="mb-2">
+                            <strong id="futures-name">GOLD MINI</strong><br>
+                            <small class="text-muted" id="futures-symbol">GOLDM</small>
+                        </div>
+                        <div id="current-price" class="price-display">₹0</div>
+                        <div id="price-change" class="mt-2">
+                            <span id="change-amount">₹0</span>
+                            <span id="change-percent">(0.00%)</span>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Contract: <span id="contract-size">100 grams</span><br>
+                                Lot Size: <span id="lot-size">0</span> <span id="unit">grams</span><br>
+                                Expiry: <span id="expiry">2025-12-05</span><br>
+                                Volume: <span id="volume">0</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Market Analysis -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-analytics me-2"></i>Market Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Regime:</strong> <span id="market-regime" class="badge bg-info">NEUTRAL</span>
+                            </div>
+                            <div class="col-6">
+                                <strong>Trend:</strong> <span id="trend-strength" class="badge bg-primary">MODERATE</span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Volatility:</strong> <span id="volatility" class="badge bg-warning">MODERATE</span>
+                            </div>
+                            <div class="col-6">
+                                <strong>Volume:</strong> <span id="volume-level" class="badge bg-secondary">NORMAL</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Technical Indicators -->
+                        <div class="mb-3">
+                            <h6><i class="fas fa-chart-line me-2"></i>Technical Indicators</h6>
+                            <div class="row">
+                                <div class="col-4 text-center">
+                                    <div class="mb-1">
+                                        <strong id="rsi-value">50</strong>
+                                        <small class="d-block text-muted">RSI</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="mb-1">
+                                        <strong id="adx-value">20</strong>
+                                        <small class="d-block text-muted">ADX</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="mb-1">
+                                        <strong id="atr-value">1.0%</strong>
+                                        <small class="d-block text-muted">ATR</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Price Levels -->
+                        <div class="mb-3">
+                            <h6><i class="fas fa-arrows-alt-v me-2"></i>Price Levels</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Support:</small><br>
+                                    <strong id="support-level">₹0</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Resistance:</small><br>
+                                    <strong id="resistance-level">₹0</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Market Sentiment -->
+                        <div>
+                            <h6><i class="fas fa-brain me-2"></i>Market Sentiment</h6>
+                            <div class="row">
+                                <div class="col-4 text-center">
+                                    <div class="mb-1">
+                                        <strong id="bullish-percent">50%</strong>
+                                        <small class="d-block text-muted">Bullish</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="mb-1">
+                                        <strong id="neutral-percent">30%</strong>
+                                        <small class="d-block text-muted">Neutral</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="mb-1">
+                                        <strong id="bearish-percent">20%</strong>
+                                        <small class="d-block text-muted">Bearish</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="performance-metrics">
+                    <h5><i class="fas fa-trophy me-2"></i>Performance</h5>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="metric-value" id="total-trades">0</div>
+                            <div class="metric-label">Total Trades</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-value" id="win-rate">0%</div>
+                            <div class="metric-label">Win Rate</div>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <div class="metric-value" id="total-pnl">₹0</div>
+                            <div class="metric-label">Total P&L</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Position Calculator -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card position-calculator">
+                    <div class="card-header">
+                        <h5><i class="fas fa-calculator me-2"></i>Position Calculator</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Quantity (Lots)</label>
+                            <input type="number" class="form-control" id="quantity-input" value="1" min="1">
+                            <small class="text-muted">Lot Size: <span id="lot-size-display">100 grams</span></small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Price (₹)</label>
+                            <input type="number" class="form-control" id="price-input" readonly>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="metric-value" id="position-value">₹0</div>
+                                <div class="metric-label">Position Value</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="metric-value" id="margin-required">₹0</div>
+                                <div class="metric-label">Margin Required</div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <strong>Contract Details:</strong><br>
+                                Size: <span id="contract-size-display">100 grams</span><br>
+                                Expiry: <span id="expiry-display">2025-12-05</span><br>
+                                Margin: <span id="margin-percent">5%</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trading Signals -->
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-signal me-2"></i>Trading Signals</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary active" onclick="showSignalTab('current')">Current Signals</button>
+                            <button class="btn btn-outline-primary" onclick="showSignalTab('past')">Past Signals</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Current Signals Tab -->
+                        <div id="current-signals-container">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <p>Loading current trading signals...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Past Signals Tab -->
+                        <div id="past-signals-container" style="display: none;">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <p>Loading past trading signals...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="row">
+            <!-- Line Chart -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line me-2"></i>Price Trend</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="price-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Candlestick Chart -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar me-2"></i>Candlestick Chart</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="candlestick-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

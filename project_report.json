@@ -1,0 +1,132 @@
+{
+    "project": {
+      "name": "Commodity 4H Optimization Framework",
+      "version": "3.0",
+      "description": "An automated, multiprocessing-enabled system to generate, backtest, and optimize trading strategies for GOLD, SILVER, and COPPER on the 4-hour timeframe.",
+      "goal": "Develop a robust quantitative trading framework that identifies profitable setups using RSI, ADX, ATR, EMA, and Inside Bar logic while minimizing drawdown and maintaining trade density."
+    },
+    "status": {
+      "current_phase": "v3 Optimization Complete",
+      "summary": "All 4H rules for gold, silver, and copper have been optimized and validated. Gold v3 optimization included multiprocessing grid search for improved robustness.",
+      "results": {
+        "gold": {
+          "pf": 1.46,
+          "wr": 65.0,
+          "mdd_pct": 2.43,
+          "trades": 20
+        },
+        "silver": {
+          "pf": 2.85,
+          "wr": 67.6,
+          "mdd_pct": 3.53,
+          "trades": 37
+        },
+        "copper": {
+          "pf": 4.90,
+          "wr": 84.6,
+          "mdd_pct": 2.04,
+          "trades": 13
+        }
+      }
+    },
+    "architecture": {
+      "data_pipeline": {
+        "raw_data": "data/raw/",
+        "processed_data": "data/processed/",
+        "feature_files": [
+          "gold_4h_features.csv",
+          "silver_4h_features.csv",
+          "copper_4h_features.csv"
+        ]
+      },
+      "code_modules": {
+        "feature_engineering": "src/indicators_4h.py",
+        "backtesting_engine": "src/backtest_4h.py",
+        "optimizer_v2": "src/optimize_gold_4h_v2.py",
+        "rule_freeze": "src/freeze_4h_rules.py",
+        "validation": "src/validate_4h_rules.py"
+      },
+      "reports": {
+        "optimization_results": "reports/4h/optimize/",
+        "frozen_rules": "reports/4h/strategies/",
+        "validation": "reports/4h/validation/"
+      }
+    },
+    "rules_locked_in": {
+      "gold": {
+        "name": "4h_bullish_v1",
+        "timeframe": "4H",
+        "entry_logic": {
+          "pattern": "inside_bar==1",
+          "trend": "ema20>ema50",
+          "rsi": "rsi14 >= 56.0",
+          "adx": "adx14 >= 22.0",
+          "atr_band": "0.009 <= atr_pct <= 0.015",
+          "near_ema": "|close-ema20| <= 1.8 * (atr_pct*close)"
+        },
+        "exits": {
+          "atr_stop": 1.6,
+          "tp2": 1.8,
+          "max_hold_bars": 8,
+          "be_at_tp1": false
+        }
+      },
+      "silver": {
+        "name": "4h_bullish_v1",
+        "timeframe": "4H",
+        "entry_logic": {
+          "pattern": "inside_bar==1",
+          "trend": "ema20>ema50",
+          "rsi": "rsi14 >= 58.0",
+          "adx": "adx14 >= 28.0",
+          "atr_band": "0.006 <= atr_pct <= 0.015",
+          "near_ema": "|close-ema20| <= 1.4 * (atr_pct*close)"
+        },
+        "exits": {
+          "atr_stop": 2.2,
+          "tp2": 2.2,
+          "max_hold_bars": 12,
+          "be_at_tp1": false
+        }
+      },
+      "copper": {
+        "name": "4h_bullish_v1",
+        "timeframe": "4H",
+        "entry_logic": {
+          "pattern": "inside_bar==1",
+          "trend": "ema20>ema50",
+          "rsi": "rsi14 >= 60.0",
+          "adx": "adx14 >= 20.0",
+          "atr_band": "0.009 <= atr_pct <= 0.015",
+          "near_ema": "|close-ema20| <= 1.8 * (atr_pct*close)"
+        },
+        "exits": {
+          "atr_stop": 1.6,
+          "tp2": 2.2,
+          "max_hold_bars": 10,
+          "be_at_tp1": false
+        }
+      }
+    },
+    "milestones": {
+      "completed": [
+        "Feature engineering pipeline for 4H timeframe",
+        "Backtesting engine with SL/TP and time-based exits",
+        "Grid optimization with multiprocessing (v2 and v3)",
+        "Rule freezing and validation for all assets",
+        "Diagnostics and sensitivity reports for parameter failures"
+      ],
+      "next_steps": [
+        "Extend multiprocessing optimizer to silver and copper",
+        "Develop visualization dashboards for PF, WR, MDD trends",
+        "Automate YAML rule export and versioning",
+        "Add equity curve visual summaries for validation phase",
+        "Deploy real-time portfolio tracking with automatic rule revalidation"
+      ]
+    },
+    "code_snippet_highlight": {
+      "description": "Multiprocessing optimizer for gold v2",
+      "snippet": "with Pool(processes=nproc, initializer=_worker_init) as pool:\n    for kept, diag in pool.imap_unordered(_evaluate_combo, combos, chunksize=64):\n        if kept is not None:\n            kept_rows.append(kept)\n        if diag is not None:\n            if diag.get('why') in {'pf_fail', 'dd_fail', 'no_trades'}:\n                diag_rows.append(diag)\n\nout = pd.DataFrame(kept_rows).sort_values(\n    ['density_ok', 'trades', 'pf', 'wr'], ascending=[False, False, False, False]\n).reset_index(drop=True)"
+    },
+    "summary": "The Commodity 4H Optimization Framework automates end-to-end signal generation, backtesting, and parameter optimization for commodity assets. With robust validation metrics and YAML rule export, it is now positioned for live trading integration and future expansion to other timeframes."
+  }

@@ -1,0 +1,126 @@
+# Commodity Trading Module Configuration
+
+# Global Settings
+project_name: "Commodity Trading Optimization Framework"
+version: "4.0"
+
+# Data Paths
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  models: "models"
+  reports: "reports"
+
+# Commodities and Timeframes
+assets:
+  commodities: ["gold", "silver", "copper"]
+  timeframes: ["1h", "4h", "1d"]
+
+# Trading Objectives (Flexible Guardrails)
+objectives:
+  primary_goal: "maximize_trades"
+  max_drawdown_pct: 15.0  # Maximum acceptable drawdown
+  min_drawdown_pct: 10.0  # Ideal minimum
+  min_profit_factor: 1.25
+  min_win_rate: 60.0  # percentage
+  target_trades_per_year:
+    1h: 200  # More trades on shorter timeframes
+    4h: 100
+    1d: 50
+
+# Backtest Parameters
+backtest:
+  default_stop_loss_atr: 2.0
+  default_take_profit_atr: 3.0
+  default_max_hold_bars: null  # null = no time-based exit
+  breakeven_at_tp1: false
+  atr_column: "atr_14"
+
+# Optimization Parameters
+optimization:
+  # Grid search ranges
+  stop_loss_atr_range: [1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]
+  take_profit_atr_range: [1.5, 1.8, 2.0, 2.2, 2.5, 2.8, 3.0, 3.5, 4.0]
+  max_hold_bars_range: [5, 8, 10, 12, 15, 20, null]  # null = no limit
+  
+  rsi_min_range: [40, 45, 50, 55, 60, 65]
+  adx_min_range: [15, 18, 20, 22, 25, 28, 30]
+  
+  atr_pct_min_range: [0.3, 0.5, 0.6, 0.8, 0.9]
+  atr_pct_max_range: [1.2, 1.5, 1.8, 2.0, 2.5]
+  
+  ema_proximity_range: [1.0, 1.2, 1.5, 1.8, 2.0, 2.5]
+  
+  volume_ratio_range: [0.8, 1.0, 1.2, 1.5]
+  
+  # Multiprocessing
+  use_multiprocessing: true
+  num_processes: null  # null = auto-detect (use all available cores)
+  chunk_size: 64
+
+# Filter Criteria
+filters:
+  # Minimum trades required to consider a strategy valid
+  min_trades: 10
+  
+  # Maximum combinations to test (prevents combinatorial explosion)
+  max_combinations: 50000
+  
+  # Early stopping criteria
+  stop_if_no_improvement_after: 1000  # combinations
+
+# Patterns to Focus On
+patterns:
+  bullish:
+    - "pattern_inside_bar"
+    - "pattern_bullish_engulfing"
+    - "pattern_bullish_pin"
+    - "pattern_hammer"
+    - "pattern_morning_star"
+    - "pattern_three_white_soldiers"
+    - "pattern_breakout_20"
+    - "pattern_breakout_10"
+    - "pattern_range_expansion"
+    - "pattern_harami_bull"
+    - "pattern_marubozu_bull"
+    
+  bearish:
+    - "pattern_bearish_engulfing"
+    - "pattern_bearish_pin"
+    - "pattern_shooting_star"
+    - "pattern_evening_star"
+    - "pattern_three_black_crows"
+    - "pattern_breakdown_20"
+    - "pattern_breakdown_10"
+    - "pattern_harami_bear"
+    - "pattern_marubozu_bear"
+
+# Trend Conditions
+trend_conditions:
+  bullish:
+    - "ema_20 > ema_50"
+    - "close > ema_20"
+    - "price_above_ema20 == 1"
+    - null  # No trend filter
+    
+  bearish:
+    - "ema_20 < ema_50"
+    - "close < ema_20"
+    - "price_above_ema20 == 0"
+    - null
+
+# Reporting
+reporting:
+  save_trades: true
+  save_equity_curves: true
+  save_parameter_sensitivity: true
+  create_plots: true
+  
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+
+
+

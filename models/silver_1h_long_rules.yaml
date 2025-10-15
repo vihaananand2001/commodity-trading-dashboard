@@ -1,0 +1,12 @@
+# Silver 1H Long Trading Rules
+# Placeholder for Silver 1H strategies (not yet optimized)
+
+strategy_metadata:
+  commodity: SILVER
+  timeframe: 1H
+  direction: LONG
+  optimization_date: "2025-10-14"
+  status: "PLACEHOLDER"
+  note: "Silver 1H strategies not yet optimized"
+
+# No strategies defined yet
