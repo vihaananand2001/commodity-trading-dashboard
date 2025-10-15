@@ -42,9 +42,13 @@ def get_services():
 
 # Cached functions
 @st.cache_data(ttl=60)
-def get_live_prices(yahoo_fetcher):
+def get_live_prices():
     """Get live commodity prices"""
     try:
+        _, yahoo_fetcher = get_services()
+        if yahoo_fetcher is None:
+            return {}
+            
         prices = {}
         for commodity in ['GOLD', 'SILVER']:
             try:
@@ -59,9 +63,13 @@ def get_live_prices(yahoo_fetcher):
         return {}
 
 @st.cache_data(ttl=300)
-def get_signals(data_service, commodity, timeframe):
+def get_signals(commodity, timeframe):
     """Get trading signals"""
     try:
+        data_service, _ = get_services()
+        if data_service is None:
+            return []
+            
         signals = data_service.generate_trading_signals(commodity.lower(), timeframe)
         return signals
     except Exception as e:
@@ -111,7 +119,7 @@ def main():
     # Live prices section
     st.header("💰 Live Prices")
     
-    live_prices = get_live_prices(yahoo_fetcher)
+    live_prices = get_live_prices()
     
     if live_prices and commodity in live_prices:
         price_data = live_prices[commodity]
@@ -156,7 +164,7 @@ def main():
     # Trading signals section
     st.header("🎯 Trading Signals")
     
-    signals = get_signals(data_service, commodity, timeframe)
+    signals = get_signals(commodity, timeframe)
     
     if signals:
         st.success(f"Found {len(signals)} trading signals!")
