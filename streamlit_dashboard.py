@@ -275,11 +275,23 @@ def main():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.metric(
-                label=f"{mcx_contract.get('name', commodity)} Price",
-                value=f"₹{price_data['price']:,.2f}",
-                delta=f"₹{price_data.get('change', 0):,.2f} ({price_data.get('change_percent', 0):.2f}%)"
-            )
+            try:
+                price_value = price_data.get('close', price_data.get('price', 0))
+                change_value = price_data.get('change', 0)
+                change_percent = price_data.get('change_percent', 0)
+                
+                st.metric(
+                    label=f"{mcx_contract.get('name', commodity)} Price",
+                    value=f"₹{price_value:,.2f}",
+                    delta=f"₹{change_value:,.2f} ({change_percent:.2f}%)"
+                )
+            except Exception as e:
+                st.error(f"Error displaying price: {e}")
+                st.metric(
+                    label=f"{mcx_contract.get('name', commodity)} Price",
+                    value="N/A",
+                    delta="N/A"
+                )
         
         with col2:
             st.metric(
