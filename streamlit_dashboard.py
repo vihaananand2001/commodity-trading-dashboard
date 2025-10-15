@@ -14,10 +14,14 @@ import sys
 import os
 
 # Add src directory to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-
-from dashboard_data_service import DashboardDataService
-from yahoo_finance_fetcher import YahooFinanceFetcher
+try:
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+    from dashboard_data_service import DashboardDataService
+    from yahoo_finance_fetcher import YahooFinanceFetcher
+except ImportError as e:
+    st.error(f"Import error: {e}")
+    st.error("Please ensure all dependencies are installed")
+    st.stop()
 
 # Page configuration
 st.set_page_config(
@@ -80,12 +84,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
-if 'data_service' not in st.session_state:
-    st.session_state.data_service = DashboardDataService()
+# Initialize session state with error handling
+try:
+    if 'data_service' not in st.session_state:
+        st.session_state.data_service = DashboardDataService()
 
-if 'yahoo_fetcher' not in st.session_state:
-    st.session_state.yahoo_fetcher = YahooFinanceFetcher()
+    if 'yahoo_fetcher' not in st.session_state:
+        st.session_state.yahoo_fetcher = YahooFinanceFetcher()
+except Exception as e:
+    st.error(f"Failed to initialize services: {e}")
+    st.stop()
 
 # Helper functions
 @st.cache_data(ttl=60)  # Cache for 1 minute
@@ -221,13 +229,17 @@ def create_signal_chart(df, signals):
 
 # Main app
 def main():
-    # Header
-    st.markdown("""
-    <div class="main-header">
-        <h1>📈 Commodity Trading Dashboard</h1>
-        <p>Live MCX Gold & Silver Trading with AI-Powered Signals</p>
-    </div>
-    """, unsafe_allow_html=True)
+    try:
+        # Header
+        st.markdown("""
+        <div class="main-header">
+            <h1>📈 Commodity Trading Dashboard</h1>
+            <p>Live MCX Gold & Silver Trading with AI-Powered Signals</p>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception as e:
+        st.title("📈 Commodity Trading Dashboard")
+        st.subheader("Live MCX Gold & Silver Trading with AI-Powered Signals")
     
     # Sidebar for controls
     with st.sidebar:
@@ -263,8 +275,12 @@ def main():
             st.cache_data.clear()
             st.rerun()
     
-    # Get live prices
-    live_prices = get_live_prices()
+    # Get live prices with error handling
+    try:
+        live_prices = get_live_prices()
+    except Exception as e:
+        st.error(f"Error fetching live prices: {e}")
+        live_prices = {}
     
     # Main content area
     if live_prices and commodity in live_prices:
@@ -459,4 +475,9 @@ def main():
             st.error(f"Error loading strategy details: {e}")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        st.error("An unexpected error occurred. Please try refreshing the page.")
+        st.error(f"Error details: {str(e)}")
+        st.info("If this persists, please check the Streamlit Cloud logs.")
