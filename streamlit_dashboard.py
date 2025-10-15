@@ -354,7 +354,7 @@ def main():
                         <h4>🚀 {signal['strategy_name']}</h4>
                         <p><strong>Pattern:</strong> {signal['pattern']}</p>
                         <p><strong>Entry Price:</strong> ₹{signal['entry_price']:,.2f}</p>
-                        <p><strong>Confidence:</strong> <span style="color: {confidence_color}">{signal['confidence']:.1f}%</span></p>
+                        <p><strong>Confidence:</strong> <span style="color: {confidence_color}">{signal['confidence']*100:.1f}%</span></p>
                         <p><strong>Direction:</strong> {signal['direction']}</p>
                         <p><strong>Timestamp:</strong> {signal['timestamp']}</p>
                     </div>

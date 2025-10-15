@@ -125,7 +125,11 @@ class DashboardDataService:
                 try:
                     # Get pattern column name
                     pattern_name = strategy['pattern']
-                    pattern_col = f"pattern_{pattern_name}"
+                    # Handle both cases: pattern_name already has 'pattern_' prefix or not
+                    if pattern_name.startswith('pattern_'):
+                        pattern_col = pattern_name
+                    else:
+                        pattern_col = f"pattern_{pattern_name}"
                     
                     if pattern_col not in recent_data.columns:
                         logger.warning(f"Pattern column {pattern_col} not found in data")
@@ -366,7 +370,11 @@ class DashboardDataService:
                 try:
                     # Get pattern column name
                     pattern_name = strategy['pattern']
-                    pattern_col = f"pattern_{pattern_name}"
+                    # Handle both cases: pattern_name already has 'pattern_' prefix or not
+                    if pattern_name.startswith('pattern_'):
+                        pattern_col = pattern_name
+                    else:
+                        pattern_col = f"pattern_{pattern_name}"
                     
                     if pattern_col not in historical_data.columns:
                         logger.warning(f"Pattern column {pattern_col} not found in data")
