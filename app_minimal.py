@@ -61,15 +61,27 @@ def get_price(commodity):
         latest = data.iloc[-1]
         price_usd = latest['Close']
         
-        # Convert to Indian pricing (adjusted for MCX rates)
+        # Convert to Indian pricing with correct ounce-to-gram conversion
         if commodity == "GOLD":
-            # Convert to ₹/10 grams with correct MCX factor
-            price_inr_per_10g = (price_usd * 83.0 * 0.361)  # Adjusted factor for MCX
+            # Convert from USD per troy ounce to ₹ per 10 grams
+            # 1 troy ounce = 31.1035 grams
+            # So 10 grams = 10/31.1035 = 0.3215 troy ounces
+            troy_ounce_to_grams = 31.1035
+            grams_in_10g = 10
+            conversion_factor = grams_in_10g / troy_ounce_to_grams  # 0.3215
+            
+            # USD per ounce -> USD per 10g -> INR per 10g
+            price_inr_per_10g = (price_usd * 93.0 * conversion_factor)  # Adjusted exchange rate for MCX
             lot_size = 1000  # 1 kg
             contract_value = price_inr_per_10g * 100 * lot_size
         else:  # SILVER
-            # Convert to ₹/kg with adjusted factor
-            price_inr_per_kg = price_usd * 83.0 * 34.5  # Adjusted factor for MCX
+            # Convert from USD per troy ounce to ₹ per kg
+            # 1 troy ounce = 31.1035 grams, so 1 kg = 32.15 troy ounces
+            troy_ounce_to_grams = 31.1035
+            grams_in_1kg = 1000
+            conversion_factor = grams_in_1kg / troy_ounce_to_grams  # 32.15
+            
+            price_inr_per_kg = price_usd * 93.0 * conversion_factor  # Adjusted exchange rate for MCX
             lot_size = 30000  # 30 kg
             contract_value = price_inr_per_kg * lot_size
         
@@ -104,11 +116,17 @@ def get_historical(commodity, timeframe):
         if data.empty:
             return None
             
-        # Convert to INR with MCX-adjusted factors
+        # Convert to INR with correct ounce-to-gram conversion
         if commodity == "GOLD":
-            data['Close_INR'] = data['Close'] * 83.0 * 0.361
+            # Correct conversion: USD per ounce -> USD per 10g -> INR per 10g
+            troy_ounce_to_grams = 31.1035
+            conversion_factor = 10 / troy_ounce_to_grams  # 0.3215
+            data['Close_INR'] = data['Close'] * 93.0 * conversion_factor
         else:
-            data['Close_INR'] = data['Close'] * 83.0 * 34.5
+            # Correct conversion: USD per ounce -> USD per kg -> INR per kg
+            troy_ounce_to_grams = 31.1035
+            conversion_factor = 1000 / troy_ounce_to_grams  # 32.15
+            data['Close_INR'] = data['Close'] * 93.0 * conversion_factor
         
         return data
     except Exception as e:
@@ -143,12 +161,22 @@ st.header("📊 Price Chart")
 hist_data = get_historical(commodity, timeframe)
 
 if hist_data is not None:
+    # Chart conversion with correct ounce-to-gram factors
+    if commodity == "GOLD":
+        troy_ounce_to_grams = 31.1035
+        conversion_factor = 10 / troy_ounce_to_grams  # 0.3215
+        chart_factor = 93.0 * conversion_factor
+    else:
+        troy_ounce_to_grams = 31.1035
+        conversion_factor = 1000 / troy_ounce_to_grams  # 32.15
+        chart_factor = 93.0 * conversion_factor
+    
     fig = go.Figure(data=go.Candlestick(
         x=hist_data.index,
-        open=hist_data['Open'] * (83.0 * 0.361 if commodity == "GOLD" else 83.0 * 34.5),
-        high=hist_data['High'] * (83.0 * 0.361 if commodity == "GOLD" else 83.0 * 34.5),
-        low=hist_data['Low'] * (83.0 * 0.361 if commodity == "GOLD" else 83.0 * 34.5),
-        close=hist_data['Close'] * (83.0 * 0.361 if commodity == "GOLD" else 83.0 * 34.5),
+        open=hist_data['Open'] * chart_factor,
+        high=hist_data['High'] * chart_factor,
+        low=hist_data['Low'] * chart_factor,
+        close=hist_data['Close'] * chart_factor,
         name="Price"
     ))
     
