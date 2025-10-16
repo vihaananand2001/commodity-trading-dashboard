@@ -79,27 +79,28 @@ def get_price(commodity):
         # Get live USD/INR exchange rate
         usd_inr_rate = get_usd_inr_rate()
         
-        # Convert to Indian pricing with correct ounce-to-gram conversion
+        # Pure market conversion using live USD/INR rate
         if commodity == "GOLD":
-            # Convert from USD per troy ounce to ₹ per 10 grams
+            # Pure market conversion: USD per troy ounce -> ₹ per 10 grams
             # 1 troy ounce = 31.1035 grams
             # So 10 grams = 10/31.1035 = 0.3215 troy ounces
             troy_ounce_to_grams = 31.1035
             grams_in_10g = 10
             conversion_factor = grams_in_10g / troy_ounce_to_grams  # 0.3215
             
-            # USD per ounce -> USD per 10g -> INR per 10g (with live exchange rate)
-            price_inr_per_10g = (price_usd * usd_inr_rate * conversion_factor)
+            # Pure market-driven conversion (no artificial adjustments)
+            price_inr_per_10g = price_usd * usd_inr_rate * conversion_factor
             lot_size = 1000  # 1 kg
             contract_value = price_inr_per_10g * 100 * lot_size
         else:  # SILVER
-            # Convert from USD per troy ounce to ₹ per kg
+            # Pure market conversion: USD per troy ounce -> ₹ per kg
             # 1 troy ounce = 31.1035 grams, so 1 kg = 32.15 troy ounces
             troy_ounce_to_grams = 31.1035
             grams_in_1kg = 1000
             conversion_factor = grams_in_1kg / troy_ounce_to_grams  # 32.15
             
-            price_inr_per_kg = price_usd * usd_inr_rate * conversion_factor  # Live exchange rate
+            # Pure market-driven conversion
+            price_inr_per_kg = price_usd * usd_inr_rate * conversion_factor
             lot_size = 30000  # 30 kg
             contract_value = price_inr_per_kg * lot_size
         
@@ -138,14 +139,14 @@ def get_historical(commodity, timeframe):
         # Get live USD/INR rate for historical conversion
         usd_inr_rate = get_usd_inr_rate()
         
-        # Convert to INR with correct ounce-to-gram conversion using live rate
+        # Pure market conversion for historical data using live USD/INR rate
         if commodity == "GOLD":
-            # Correct conversion: USD per ounce -> USD per 10g -> INR per 10g
+            # Pure market conversion: USD per ounce -> INR per 10g
             troy_ounce_to_grams = 31.1035
             conversion_factor = 10 / troy_ounce_to_grams  # 0.3215
             data['Close_INR'] = data['Close'] * usd_inr_rate * conversion_factor
         else:
-            # Correct conversion: USD per ounce -> USD per kg -> INR per kg
+            # Pure market conversion: USD per ounce -> INR per kg
             troy_ounce_to_grams = 31.1035
             conversion_factor = 1000 / troy_ounce_to_grams  # 32.15
             data['Close_INR'] = data['Close'] * usd_inr_rate * conversion_factor
@@ -160,21 +161,30 @@ price_data = get_price(commodity)
 
 if price_data:
     # Currency and Exchange Rate Display
-    st.subheader("💱 Live Currency Rates")
+    st.subheader("💱 Live Market Conversion")
     col_curr1, col_curr2, col_curr3 = st.columns(3)
     
     with col_curr1:
-        st.metric("USD/INR Rate", f"₹{price_data['usd_inr_rate']:.2f}")
+        st.metric("USD/INR Rate", f"₹{price_data['usd_inr_rate']:.2f}", 
+                 help="Live exchange rate from Yahoo Finance")
     
     with col_curr2:
         if commodity == "GOLD":
-            st.metric(f"{commodity} USD", f"${price_data['price_usd']:,.2f}/oz")
+            st.metric(f"{commodity} USD", f"${price_data['price_usd']:,.2f}/oz",
+                     help="Gold futures price per troy ounce")
         else:
-            st.metric(f"{commodity} USD", f"${price_data['price_usd']:,.2f}/oz")
+            st.metric(f"{commodity} USD", f"${price_data['price_usd']:,.2f}/oz",
+                     help="Silver futures price per troy ounce")
     
     with col_curr3:
         st.metric(f"{commodity} INR", f"₹{price_data['price_inr_per_10g']:,.0f}", 
-                 help=f"Per {price_data['currency']}")
+                 help=f"Market-converted price per {price_data['currency']}")
+    
+    # Show conversion formula
+    st.info(f"""
+    **🔄 Market Conversion Formula:**
+    ${price_data['price_usd']:,.2f} (USD/oz) × ₹{price_data['usd_inr_rate']:.2f} (USD/INR) × 0.3215 (10g/oz) = ₹{price_data['price_inr_per_10g']:,.0f}/10g
+    """)
     
     # Main metrics
     st.subheader("📊 Contract Details")
@@ -194,13 +204,13 @@ if price_data:
         if commodity == "GOLD":
             troy_ounce_to_grams = 31.1035
             conversion_factor = 10 / troy_ounce_to_grams
-            st.metric("Conversion", f"{conversion_factor:.4f}", 
-                     help="10g to troy ounce factor")
+            st.metric("Weight Factor", f"{conversion_factor:.4f}", 
+                     help="10g to troy ounce conversion (pure math)")
         else:
             troy_ounce_to_grams = 31.1035
             conversion_factor = 1000 / troy_ounce_to_grams
-            st.metric("Conversion", f"{conversion_factor:.2f}", 
-                     help="1kg to troy ounce factor")
+            st.metric("Weight Factor", f"{conversion_factor:.2f}", 
+                     help="1kg to troy ounce conversion (pure math)")
 
 # Chart
 st.header("📊 Price Chart")
