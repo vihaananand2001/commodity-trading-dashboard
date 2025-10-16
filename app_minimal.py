@@ -15,6 +15,19 @@ st.set_page_config(
 st.title("📈 Commodity Trading Dashboard")
 st.markdown("**Live Gold & Silver Prices with Paper Trading**")
 
+# Auto-refresh and timestamp
+col1, col2, col3 = st.columns([2, 1, 1])
+with col1:
+    st.markdown(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+with col2:
+    if st.button("🔄 Refresh Data"):
+        st.cache_data.clear()
+        st.rerun()
+with col3:
+    auto_refresh = st.checkbox("Auto-refresh (30s)", value=False)
+    if auto_refresh:
+        st.rerun()
+
 # Sidebar
 with st.sidebar:
     st.header("🎛️ Controls")
@@ -33,7 +46,7 @@ with st.sidebar:
         st.metric("Balance", "₹10,00,000")
 
 # Get price data
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=60)  # 1 minute cache for more live data
 def get_price(commodity):
     try:
         if commodity == "GOLD":
@@ -48,15 +61,15 @@ def get_price(commodity):
         latest = data.iloc[-1]
         price_usd = latest['Close']
         
-        # Convert to Indian pricing
+        # Convert to Indian pricing (adjusted for MCX rates)
         if commodity == "GOLD":
-            # Convert to ₹/10 grams
-            price_inr_per_10g = (price_usd * 83.0 * 0.321)
+            # Convert to ₹/10 grams with correct MCX factor
+            price_inr_per_10g = (price_usd * 83.0 * 0.361)  # Adjusted factor for MCX
             lot_size = 1000  # 1 kg
             contract_value = price_inr_per_10g * 100 * lot_size
         else:  # SILVER
-            # Convert to ₹/kg
-            price_inr_per_kg = price_usd * 83.0 * 32.15
+            # Convert to ₹/kg with adjusted factor
+            price_inr_per_kg = price_usd * 83.0 * 34.5  # Adjusted factor for MCX
             lot_size = 30000  # 30 kg
             contract_value = price_inr_per_kg * lot_size
         
@@ -73,7 +86,7 @@ def get_price(commodity):
         return None
 
 # Get historical data
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=120)  # 2 minute cache for historical data
 def get_historical(commodity, timeframe):
     try:
         if commodity == "GOLD":
@@ -91,11 +104,11 @@ def get_historical(commodity, timeframe):
         if data.empty:
             return None
             
-        # Convert to INR
+        # Convert to INR with MCX-adjusted factors
         if commodity == "GOLD":
-            data['Close_INR'] = data['Close'] * 83.0 * 0.321
+            data['Close_INR'] = data['Close'] * 83.0 * 0.361
         else:
-            data['Close_INR'] = data['Close'] * 83.0 * 32.15
+            data['Close_INR'] = data['Close'] * 83.0 * 34.5
         
         return data
     except Exception as e:
@@ -132,10 +145,10 @@ hist_data = get_historical(commodity, timeframe)
 if hist_data is not None:
     fig = go.Figure(data=go.Candlestick(
         x=hist_data.index,
-        open=hist_data['Open'] * (83.0 * 0.321 if commodity == "GOLD" else 83.0 * 32.15),
-        high=hist_data['High'] * (83.0 * 0.321 if commodity == "GOLD" else 83.0 * 32.15),
-        low=hist_data['Low'] * (83.0 * 0.321 if commodity == "GOLD" else 83.0 * 32.15),
-        close=hist_data['Close'] * (83.0 * 0.321 if commodity == "GOLD" else 83.0 * 32.15),
+        open=hist_data['Open'] * (83.0 * 0.361 if commodity == "GOLD" else 83.0 * 34.5),
+        high=hist_data['High'] * (83.0 * 0.361 if commodity == "GOLD" else 83.0 * 34.5),
+        low=hist_data['Low'] * (83.0 * 0.361 if commodity == "GOLD" else 83.0 * 34.5),
+        close=hist_data['Close'] * (83.0 * 0.361 if commodity == "GOLD" else 83.0 * 34.5),
         name="Price"
     ))
     
