@@ -45,6 +45,21 @@ with st.sidebar:
     if paper_mode:
         st.metric("Balance", "₹10,00,000")
 
+# Get live USD/INR exchange rate
+@st.cache_data(ttl=60)
+def get_usd_inr_rate():
+    """Get live USD/INR exchange rate from Yahoo Finance"""
+    try:
+        usd_inr_ticker = yf.Ticker('USDINR=X')
+        usd_inr_data = usd_inr_ticker.history(period='1d')
+        if not usd_inr_data.empty:
+            return usd_inr_data['Close'].iloc[-1]
+        else:
+            return 83.0  # Fallback rate
+    except Exception as e:
+        st.warning(f"Could not fetch USD/INR rate: {e}")
+        return 83.0  # Fallback rate
+
 # Get price data
 @st.cache_data(ttl=60)  # 1 minute cache for more live data
 def get_price(commodity):
@@ -61,6 +76,9 @@ def get_price(commodity):
         latest = data.iloc[-1]
         price_usd = latest['Close']
         
+        # Get live USD/INR exchange rate
+        usd_inr_rate = get_usd_inr_rate()
+        
         # Convert to Indian pricing with correct ounce-to-gram conversion
         if commodity == "GOLD":
             # Convert from USD per troy ounce to ₹ per 10 grams
@@ -70,8 +88,8 @@ def get_price(commodity):
             grams_in_10g = 10
             conversion_factor = grams_in_10g / troy_ounce_to_grams  # 0.3215
             
-            # USD per ounce -> USD per 10g -> INR per 10g
-            price_inr_per_10g = (price_usd * 93.0 * conversion_factor)  # Adjusted exchange rate for MCX
+            # USD per ounce -> USD per 10g -> INR per 10g (with live exchange rate)
+            price_inr_per_10g = (price_usd * usd_inr_rate * conversion_factor)
             lot_size = 1000  # 1 kg
             contract_value = price_inr_per_10g * 100 * lot_size
         else:  # SILVER
@@ -81,7 +99,7 @@ def get_price(commodity):
             grams_in_1kg = 1000
             conversion_factor = grams_in_1kg / troy_ounce_to_grams  # 32.15
             
-            price_inr_per_kg = price_usd * 93.0 * conversion_factor  # Adjusted exchange rate for MCX
+            price_inr_per_kg = price_usd * usd_inr_rate * conversion_factor  # Live exchange rate
             lot_size = 30000  # 30 kg
             contract_value = price_inr_per_kg * lot_size
         
@@ -91,7 +109,8 @@ def get_price(commodity):
             'volume': latest['Volume'],
             'lot_size': lot_size,
             'contract_value': contract_value,
-            'currency': '₹/10g' if commodity == "GOLD" else '₹/kg'
+            'currency': '₹/10g' if commodity == "GOLD" else '₹/kg',
+            'usd_inr_rate': usd_inr_rate
         }
     except Exception as e:
         st.error(f"Error: {e}")
@@ -116,17 +135,20 @@ def get_historical(commodity, timeframe):
         if data.empty:
             return None
             
-        # Convert to INR with correct ounce-to-gram conversion
+        # Get live USD/INR rate for historical conversion
+        usd_inr_rate = get_usd_inr_rate()
+        
+        # Convert to INR with correct ounce-to-gram conversion using live rate
         if commodity == "GOLD":
             # Correct conversion: USD per ounce -> USD per 10g -> INR per 10g
             troy_ounce_to_grams = 31.1035
             conversion_factor = 10 / troy_ounce_to_grams  # 0.3215
-            data['Close_INR'] = data['Close'] * 93.0 * conversion_factor
+            data['Close_INR'] = data['Close'] * usd_inr_rate * conversion_factor
         else:
             # Correct conversion: USD per ounce -> USD per kg -> INR per kg
             troy_ounce_to_grams = 31.1035
             conversion_factor = 1000 / troy_ounce_to_grams  # 32.15
-            data['Close_INR'] = data['Close'] * 93.0 * conversion_factor
+            data['Close_INR'] = data['Close'] * usd_inr_rate * conversion_factor
         
         return data
     except Exception as e:
@@ -137,23 +159,48 @@ def get_historical(commodity, timeframe):
 price_data = get_price(commodity)
 
 if price_data:
+    # Currency and Exchange Rate Display
+    st.subheader("💱 Live Currency Rates")
+    col_curr1, col_curr2, col_curr3 = st.columns(3)
+    
+    with col_curr1:
+        st.metric("USD/INR Rate", f"₹{price_data['usd_inr_rate']:.2f}")
+    
+    with col_curr2:
+        if commodity == "GOLD":
+            st.metric(f"{commodity} USD", f"${price_data['price_usd']:,.2f}/oz")
+        else:
+            st.metric(f"{commodity} USD", f"${price_data['price_usd']:,.2f}/oz")
+    
+    with col_curr3:
+        st.metric(f"{commodity} INR", f"₹{price_data['price_inr_per_10g']:,.0f}", 
+                 help=f"Per {price_data['currency']}")
+    
+    # Main metrics
+    st.subheader("📊 Contract Details")
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric(
-            f"{commodity} Price",
-            f"₹{price_data['price_inr_per_10g']:,.0f}",
-            help=f"Per {price_data['currency']}"
-        )
-    
-    with col2:
         st.metric("Lot Size", f"{price_data['lot_size']:,}")
     
-    with col3:
+    with col2:
         st.metric("Contract Value", f"₹{price_data['contract_value']:,.0f}")
     
-    with col4:
+    with col3:
         st.metric("Volume", f"{price_data['volume']:,.0f}")
+    
+    with col4:
+        # Show conversion breakdown
+        if commodity == "GOLD":
+            troy_ounce_to_grams = 31.1035
+            conversion_factor = 10 / troy_ounce_to_grams
+            st.metric("Conversion", f"{conversion_factor:.4f}", 
+                     help="10g to troy ounce factor")
+        else:
+            troy_ounce_to_grams = 31.1035
+            conversion_factor = 1000 / troy_ounce_to_grams
+            st.metric("Conversion", f"{conversion_factor:.2f}", 
+                     help="1kg to troy ounce factor")
 
 # Chart
 st.header("📊 Price Chart")
@@ -161,15 +208,16 @@ st.header("📊 Price Chart")
 hist_data = get_historical(commodity, timeframe)
 
 if hist_data is not None:
-    # Chart conversion with correct ounce-to-gram factors
+    # Chart conversion with live USD/INR rate
+    usd_inr_rate = get_usd_inr_rate()
     if commodity == "GOLD":
         troy_ounce_to_grams = 31.1035
         conversion_factor = 10 / troy_ounce_to_grams  # 0.3215
-        chart_factor = 93.0 * conversion_factor
+        chart_factor = usd_inr_rate * conversion_factor
     else:
         troy_ounce_to_grams = 31.1035
         conversion_factor = 1000 / troy_ounce_to_grams  # 32.15
-        chart_factor = 93.0 * conversion_factor
+        chart_factor = usd_inr_rate * conversion_factor
     
     fig = go.Figure(data=go.Candlestick(
         x=hist_data.index,
