@@ -6,14 +6,113 @@ from datetime import datetime
 
 # Page config
 st.set_page_config(
-    page_title="Commodity Dashboard",
+    page_title="MCX Trading Dashboard",
     page_icon="📈",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Header
-st.title("📈 Commodity Trading Dashboard")
-st.markdown("**Live Gold & Silver Prices with Paper Trading**")
+# Custom CSS for professional styling
+st.markdown("""
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #1f4e79 0%, #2e5a8a 100%);
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .main-header h1 {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 0;
+    }
+    
+    .main-header p {
+        color: #e8f4f8;
+        font-size: 1.2rem;
+        margin: 0.5rem 0 0 0;
+    }
+    
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .currency-card {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .signal-card-buy {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        margin: 1rem 0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .signal-card-sell {
+        background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        margin: 1rem 0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        margin: 1rem 0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .sidebar .sidebar-content {
+        background: linear-gradient(180deg, #2c3e50 0%, #3498db 100%);
+    }
+    
+    .stButton > button {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 0.5rem 2rem;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .refresh-button {
+        background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%) !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Professional Header
+st.markdown("""
+<div class="main-header">
+    <h1>📈 MCX Trading Dashboard</h1>
+    <p>Professional Commodity Trading Platform | Live Market Data & Paper Trading</p>
+</div>
+""", unsafe_allow_html=True)
 
 # Auto-refresh and timestamp
 col1, col2, col3 = st.columns([2, 1, 1])
@@ -160,60 +259,104 @@ def get_historical(commodity, timeframe):
 price_data = get_price(commodity)
 
 if price_data:
-    # Currency and Exchange Rate Display
-    st.subheader("💱 Live Market Conversion")
+    # Professional Currency Display
+    st.markdown("### 💱 Live Market Conversion")
+    
     col_curr1, col_curr2, col_curr3 = st.columns(3)
     
     with col_curr1:
-        st.metric("USD/INR Rate", f"₹{price_data['usd_inr_rate']:.2f}", 
-                 help="Live exchange rate from Yahoo Finance")
+        st.markdown(f"""
+        <div class="currency-card">
+            <h3>💱 USD/INR</h3>
+            <h2>₹{price_data['usd_inr_rate']:.2f}</h2>
+            <p>Live Exchange Rate</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col_curr2:
-        if commodity == "GOLD":
-            st.metric(f"{commodity} USD", f"${price_data['price_usd']:,.2f}/oz",
-                     help="Gold futures price per troy ounce")
-        else:
-            st.metric(f"{commodity} USD", f"${price_data['price_usd']:,.2f}/oz",
-                     help="Silver futures price per troy ounce")
+        st.markdown(f"""
+        <div class="currency-card">
+            <h3>🇺🇸 {commodity} USD</h3>
+            <h2>${price_data['price_usd']:,.2f}</h2>
+            <p>Per Troy Ounce</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col_curr3:
-        st.metric(f"{commodity} INR", f"₹{price_data['price_inr_per_10g']:,.0f}", 
-                 help=f"Market-converted price per {price_data['currency']}")
+        st.markdown(f"""
+        <div class="currency-card">
+            <h3>🇮🇳 {commodity} INR</h3>
+            <h2>₹{price_data['price_inr_per_10g']:,.0f}</h2>
+            <p>Per {price_data['currency']}</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Show conversion formula
-    st.info(f"""
-    **🔄 Market Conversion Formula:**
-    ${price_data['price_usd']:,.2f} (USD/oz) × ₹{price_data['usd_inr_rate']:.2f} (USD/INR) × 0.3215 (10g/oz) = ₹{price_data['price_inr_per_10g']:,.0f}/10g
-    """)
+    # Professional conversion formula display
+    st.markdown(f"""
+    <div class="info-card">
+        <h3>🔄 Market Conversion Formula</h3>
+        <p><strong>${price_data['price_usd']:,.2f}</strong> (USD/oz) × <strong>₹{price_data['usd_inr_rate']:.2f}</strong> (USD/INR) × <strong>0.3215</strong> (10g/oz) = <strong>₹{price_data['price_inr_per_10g']:,.0f}</strong>/10g</p>
+        <p><em>Pure market-driven conversion with live exchange rates</em></p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Main metrics
-    st.subheader("📊 Contract Details")
+    # Professional Contract Details
+    st.markdown("### 📊 Contract Details")
+    
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Lot Size", f"{price_data['lot_size']:,}")
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>📦 Lot Size</h3>
+            <h2>{price_data['lot_size']:,}</h2>
+            <p>Contract Units</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
-        st.metric("Contract Value", f"₹{price_data['contract_value']:,.0f}")
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>💰 Contract Value</h3>
+            <h2>₹{price_data['contract_value']:,.0f}</h2>
+            <p>Total Value</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col3:
-        st.metric("Volume", f"{price_data['volume']:,.0f}")
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>📊 Volume</h3>
+            <h2>{price_data['volume']:,.0f}</h2>
+            <p>Trading Volume</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col4:
         # Show conversion breakdown
         if commodity == "GOLD":
             troy_ounce_to_grams = 31.1035
             conversion_factor = 10 / troy_ounce_to_grams
-            st.metric("Weight Factor", f"{conversion_factor:.4f}", 
-                     help="10g to troy ounce conversion (pure math)")
+            st.markdown(f"""
+            <div class="metric-card">
+                <h3>⚖️ Weight Factor</h3>
+                <h2>{conversion_factor:.4f}</h2>
+                <p>10g to troy ounce</p>
+            </div>
+            """, unsafe_allow_html=True)
         else:
             troy_ounce_to_grams = 31.1035
             conversion_factor = 1000 / troy_ounce_to_grams
-            st.metric("Weight Factor", f"{conversion_factor:.2f}", 
-                     help="1kg to troy ounce conversion (pure math)")
+            st.markdown(f"""
+            <div class="metric-card">
+                <h3>⚖️ Weight Factor</h3>
+                <h2>{conversion_factor:.2f}</h2>
+                <p>1kg to troy ounce</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-# Chart
-st.header("📊 Price Chart")
+# Professional Chart Section
+st.markdown("### 📊 Live Price Chart")
 
 hist_data = get_historical(commodity, timeframe)
 
@@ -239,34 +382,71 @@ if hist_data is not None:
     ))
     
     fig.update_layout(
-        title=f"{commodity} Price Chart (₹)",
-        xaxis_title="Date",
+        title=f"{commodity} Live Price Chart (₹) - {timeframe.upper()} Timeframe",
+        xaxis_title="Date & Time",
         yaxis_title="Price (₹)",
-        height=500
+        height=600,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#2c3e50'),
+        title_font_size=20,
+        title_x=0.5
+    )
+    
+    # Add professional styling to the chart
+    fig.update_traces(
+        increasing_line_color='#2ecc71',
+        decreasing_line_color='#e74c3c',
+        line=dict(width=2)
     )
     
     st.plotly_chart(fig, use_container_width=True)
     
-    # Simple signals
+    # Professional Trading Signals
     if len(hist_data) > 20:
         current_price = hist_data['Close_INR'].iloc[-1]
         avg_price = hist_data['Close_INR'].tail(20).mean()
         
-        st.header("🚨 Trading Signals")
+        st.markdown("### 🚨 Trading Signals")
         
         if current_price > avg_price:
-            st.success("🟢 Bullish Signal: Price above 20-period average")
+            st.markdown(f"""
+            <div class="signal-card-buy">
+                <h3>🟢 BULLISH SIGNAL</h3>
+                <p><strong>Price above 20-period moving average</strong></p>
+                <p>Current: ₹{current_price:.0f} | Average: ₹{avg_price:.0f}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
             if paper_mode:
-                if st.button("🟢 Execute BUY Trade", type="primary"):
-                    st.success("✅ BUY trade executed in paper trading mode!")
+                col1, col2 = st.columns([1, 3])
+                with col1:
+                    if st.button("🟢 Execute BUY Trade", type="primary"):
+                        st.success("✅ BUY trade executed in paper trading mode!")
         else:
-            st.warning("🔴 Bearish Signal: Price below 20-period average")
+            st.markdown(f"""
+            <div class="signal-card-sell">
+                <h3>🔴 BEARISH SIGNAL</h3>
+                <p><strong>Price below 20-period moving average</strong></p>
+                <p>Current: ₹{current_price:.0f} | Average: ₹{avg_price:.0f}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
             if paper_mode:
-                if st.button("🔴 Execute SELL Trade", type="primary"):
-                    st.success("✅ SELL trade executed in paper trading mode!")
+                col1, col2 = st.columns([1, 3])
+                with col1:
+                    if st.button("🔴 Execute SELL Trade", type="primary"):
+                        st.success("✅ SELL trade executed in paper trading mode!")
 else:
     st.error("Unable to load chart data")
 
-# Footer
+# Professional Footer
 st.markdown("---")
-st.markdown("*Data provided by Yahoo Finance | Paper Trading Mode*")
+st.markdown("""
+<div style="text-align: center; padding: 2rem; background: linear-gradient(90deg, #1f4e79 0%, #2e5a8a 100%); border-radius: 10px; color: white; margin-top: 2rem;">
+    <h4>📈 MCX Trading Dashboard</h4>
+    <p><strong>Professional Commodity Trading Platform</strong></p>
+    <p>Live data provided by Yahoo Finance | Pure market-driven conversion | Paper Trading Mode</p>
+    <p><em>Built for professional traders and investors</em></p>
+</div>
+""", unsafe_allow_html=True)
