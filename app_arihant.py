@@ -152,6 +152,36 @@ with st.sidebar:
     else:
         timeframe = st.selectbox("Timeframe", ["4h", "1d"])
     
+    # MCX Contract selection
+    st.markdown("#### 📋 MCX Contract Details")
+    if commodity == "GOLD":
+        if timeframe == "1h":
+            contract_name = "GOLD MICRO 1"
+            lot_size = 100  # 100 grams
+            expiry = "Last Thursday of current month"
+            contract_symbol = "GOLDM"
+        elif timeframe == "4h":
+            contract_name = "GOLD MINI"
+            lot_size = 100  # 100 grams  
+            expiry = "Last Thursday of current month"
+            contract_symbol = "GOLDMINI"
+        else:  # 1d
+            contract_name = "GOLD"
+            lot_size = 1000  # 1 kg
+            expiry = "Last Thursday of current month"
+            contract_symbol = "GOLD"
+    else:  # SILVER
+        if timeframe == "4h":
+            contract_name = "SILVER MICRO"
+            lot_size = 1000  # 1 kg
+            expiry = "Last Thursday of current month"
+            contract_symbol = "SILVERM"
+        else:  # 1d
+            contract_name = "SILVER"
+            lot_size = 30000  # 30 kg
+            expiry = "Last Thursday of current month"
+            contract_symbol = "SILVER"
+    
     # Paper trading
     st.markdown("#### 📊 Paper Trading")
     paper_mode = st.checkbox("Enable Paper Trading", value=False)
@@ -271,6 +301,26 @@ def get_indian_api_prices():
         st.warning(f"Could not fetch Indian API prices: {e}")
         return None
 
+# Current Month Futures Contract Display
+st.markdown("### 📋 Current Month Futures Contract")
+st.markdown(f"""
+<div class="info-card">
+    <h3>📊 {contract_name} ({contract_symbol})</h3>
+    <div style="display: flex; justify-content: space-between; margin-top: 1rem;">
+        <div>
+            <strong>Commodity:</strong> {commodity}<br>
+            <strong>Timeframe:</strong> {timeframe.upper()}<br>
+            <strong>Lot Size:</strong> {lot_size:,} grams
+        </div>
+        <div>
+            <strong>Contract Symbol:</strong> {contract_symbol}<br>
+            <strong>Expiry:</strong> {expiry}<br>
+            <strong>Exchange:</strong> MCX India
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 # Main content
 st.markdown("### 💱 Live Market Data")
 
@@ -342,24 +392,75 @@ elif use_indian_api and indian_data:
 if primary_data:
     st.markdown("### 📈 Primary Data Source")
     
+    # Calculate contract value based on selected lot size
     if commodity == "GOLD":
         if 'gold_inr_per_10g' in primary_data:
-            st.markdown(f"""
-            <div class="currency-card">
-                <h3>🇮🇳 {commodity} INR</h3>
-                <h2>₹{primary_data['gold_inr_per_10g']:,.0f}</h2>
-                <p>Per 10g (Source: {primary_data.get('source', 'Unknown')})</p>
-            </div>
-            """, unsafe_allow_html=True)
+            price_per_10g = primary_data['gold_inr_per_10g']
+            price_per_gram = price_per_10g / 10
+            contract_value = price_per_gram * lot_size
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown(f"""
+                <div class="currency-card">
+                    <h3>🇮🇳 {commodity} Price</h3>
+                    <h2>₹{price_per_10g:,.0f}</h2>
+                    <p>Per 10g</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f"""
+                <div class="currency-card">
+                    <h3>💰 Contract Value</h3>
+                    <h2>₹{contract_value:,.0f}</h2>
+                    <p>For {lot_size:,}g lot</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown(f"""
+                <div class="currency-card">
+                    <h3>📊 Source</h3>
+                    <h2>{primary_data.get('source', 'Unknown')}</h2>
+                    <p>Live Data</p>
+                </div>
+                """, unsafe_allow_html=True)
     else:
         if 'silver_inr_per_kg' in primary_data:
-            st.markdown(f"""
-            <div class="currency-card">
-                <h3>🇮🇳 {commodity} INR</h3>
-                <h2>₹{primary_data['silver_inr_per_kg']:,.0f}</h2>
-                <p>Per kg (Source: {primary_data.get('source', 'Unknown')})</p>
-            </div>
-            """, unsafe_allow_html=True)
+            price_per_kg = primary_data['silver_inr_per_kg']
+            price_per_gram = price_per_kg / 1000
+            contract_value = price_per_gram * lot_size
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown(f"""
+                <div class="currency-card">
+                    <h3>🇮🇳 {commodity} Price</h3>
+                    <h2>₹{price_per_kg:,.0f}</h2>
+                    <p>Per kg</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f"""
+                <div class="currency-card">
+                    <h3>💰 Contract Value</h3>
+                    <h2>₹{contract_value:,.0f}</h2>
+                    <p>For {lot_size:,}g lot</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown(f"""
+                <div class="currency-card">
+                    <h3>📊 Source</h3>
+                    <h2>{primary_data.get('source', 'Unknown')}</h2>
+                    <p>Live Data</p>
+                </div>
+                """, unsafe_allow_html=True)
 
 # Chart section (using Yahoo Finance for historical data)
 st.markdown("### 📊 Price Chart")
