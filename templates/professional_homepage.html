@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Commodity Trading Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1a1a1a;
+            --secondary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --dark-color: #34495e;
+            --light-color: #ecf0f1;
+            --gold-color: #f39c12;
+            --silver-color: #95a5a6;
+            --copper-color: #e67e22;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #2c3e50;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: white !important;
+        }
+
+        .main-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .main-header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .main-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--accent-color), #5dade2);
+            color: white;
+            border-radius: 12px 12px 0 0 !important;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+        }
+
+        .price-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .price-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .price-change {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .price-change.positive {
+            color: var(--success-color);
+        }
+
+        .price-change.negative {
+            color: var(--danger-color);
+        }
+
+        .commodity-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .commodity-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        .commodity-card.gold {
+            border-left: 5px solid var(--gold-color);
+        }
+
+        .commodity-card.silver {
+            border-left: 5px solid var(--silver-color);
+        }
+
+        .commodity-card.copper {
+            border-left: 5px solid var(--copper-color);
+        }
+
+        .signal-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .signal-card.high-confidence {
+            border-left-color: var(--success-color);
+            background: #f0f9f0;
+        }
+
+        .signal-card.medium-confidence {
+            border-left-color: var(--warning-color);
+            background: #fffbf0;
+        }
+
+        .signal-card.low-confidence {
+            border-left-color: var(--danger-color);
+            background: #fdf2f2;
+        }
+
+        .confidence-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-weight: 600;
+        }
+
+        .confidence-very-high {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .confidence-high {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .confidence-medium {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .confidence-low {
+            background-color: #e67e22;
+            color: white;
+        }
+
+        .confidence-very-low {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .market-sentiment {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .sentiment-bar {
+            height: 8px;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+        }
+
+        .sentiment-bullish {
+            background: linear-gradient(90deg, var(--success-color), #2ecc71);
+        }
+
+        .sentiment-bearish {
+            background: linear-gradient(90deg, var(--danger-color), #e74c3c);
+        }
+
+        .sentiment-neutral {
+            background: linear-gradient(90deg, #95a5a6, #7f8c8d);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-online {
+            background-color: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        .status-offline {
+            background-color: var(--danger-color);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--accent-color);
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--accent-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .last-update {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 0.9rem;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .timeframe-selector {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .btn-timeframe {
+            margin: 0.25rem;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            border: 2px solid var(--accent-color);
+            background: white;
+            color: var(--accent-color);
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-timeframe.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-timeframe:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Professional Trading Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item">
+                    <span class="status-indicator status-online"></span>
+                    <span class="text-white">Live Market Data</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Last Update Indicator -->
+    <div class="last-update">
+        <small class="text-muted">Last Update:</small><br>
+        <strong id="last-update">--:--</strong>
+    </div>
+
+    <!-- Refresh Button -->
+    <button class="btn btn-primary refresh-btn" onclick="refreshData()" title="Refresh Data">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+
+    <!-- Main Header -->
+    <div class="main-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1>Commodity Trading Dashboard</h1>
+                    <p>Professional market analysis and trading signals for Gold, Silver, and Copper</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="metric-card" style="background: rgba(255,255,255,0.1); color: white;">
+                        <div class="metric-value" id="usd-inr-rate">₹83.00</div>
+                        <div class="metric-label">USD/INR Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <!-- Market Overview -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-globe me-2"></i>Market Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-grid">
+                            <div class="metric-card commodity-card gold" onclick="navigateToCommodity('GOLD', '1h')">
+                                <div class="metric-value" id="gold-price">₹0</div>
+                                <div class="metric-label">Gold (₹/10g)</div>
+                                <div class="price-change" id="gold-change">₹0 (0.00%)</div>
+                            </div>
+                            <div class="metric-card commodity-card silver" onclick="navigateToCommodity('SILVER', '4h')">
+                                <div class="metric-value" id="silver-price">₹0</div>
+                                <div class="metric-label">Silver (₹/kg)</div>
+                                <div class="price-change" id="silver-change">₹0 (0.00%)</div>
+                            </div>
+                            <div class="metric-card commodity-card copper" onclick="navigateToCommodity('COPPER', '1d')">
+                                <div class="metric-value" id="copper-price">₹0</div>
+                                <div class="metric-label">Copper (₹/kg)</div>
+                                <div class="price-change" id="copper-change">₹0 (0.00%)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Sentiment -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-brain me-2"></i>Market Sentiment</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="market-sentiment">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="metric-value" id="bullish-percent">50%</div>
+                                    <div class="metric-label">Bullish</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="metric-value" id="neutral-percent">30%</div>
+                                    <div class="metric-label">Neutral</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="metric-value" id="bearish-percent">20%</div>
+                                    <div class="metric-label">Bearish</div>
+                                </div>
+                            </div>
+                            <div class="sentiment-bar sentiment-bullish" id="bullish-bar" style="width: 50%"></div>
+                            <div class="sentiment-bar sentiment-neutral" id="neutral-bar" style="width: 30%"></div>
+                            <div class="sentiment-bar sentiment-bearish" id="bearish-bar" style="width: 20%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-signal me-2"></i>Active Signals Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="metric-value" id="total-signals">0</div>
+                                <div class="metric-label">Total Signals</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="metric-value" id="high-confidence">0</div>
+                                <div class="metric-label">High Confidence</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="metric-value" id="active-commodities">0</div>
+                                <div class="metric-label">Active Commodities</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeframe Selector -->
+        <div class="timeframe-selector">
+            <h5 class="mb-3"><i class="fas fa-clock me-2"></i>Select Analysis Timeframe</h5>
+            <div class="text-center">
+                <button class="btn btn-timeframe active" onclick="selectTimeframe('1h')">1 Hour</button>
+                <button class="btn btn-timeframe" onclick="selectTimeframe('4h')">4 Hours</button>
+                <button class="btn btn-timeframe" onclick="selectTimeframe('1d')">1 Day</button>
+            </div>
+        </div>
+
+        <!-- Trading Signals -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line me-2"></i>Current Trading Signals</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary active" onclick="showSignalTab('all')">All Signals</button>
+                            <button class="btn btn-outline-primary" onclick="showSignalTab('gold')">Gold</button>
+                            <button class="btn btn-outline-primary" onclick="showSignalTab('silver')">Silver</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="signals-container">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <p>Loading trading signals...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commodity Navigation -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-route me-2"></i>Navigate to Detailed Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card commodity-card gold" onclick="navigateToCommodity('GOLD', '1h')">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-gem fa-3x mb-3" style="color: var(--gold-color);"></i>
+                                        <h5>Gold Analysis</h5>
+                                        <p class="text-muted">1H, 4H, 1D timeframes available</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card commodity-card silver" onclick="navigateToCommodity('SILVER', '4h')">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-circle fa-3x mb-3" style="color: var(--silver-color);"></i>
+                                        <h5>Silver Analysis</h5>
+                                        <p class="text-muted">4H, 1D timeframes available</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card commodity-card copper" onclick="navigateToCommodity('COPPER', '1d')">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-cog fa-3x mb-3" style="color: var(--copper-color);"></i>
+                                        <h5>Copper Analysis</h5>
+                                        <p class="text-muted">1D timeframe available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        let currentTimeframe = '1h';
+        let currentSignalTab = 'all';
+        let marketData = {};
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMarketOverview();
+            setInterval(loadMarketOverview, 30000); // Update every 30 seconds
+        });
+
+        function loadMarketOverview() {
+            fetch('/api/market-overview')
+                .then(response => response.json())
+                .then(data => {
+                    marketData = data;
+                    updateMarketDisplay(data);
+                    updateLastUpdateTime();
+                })
+                .catch(error => {
+                    console.error('Error loading market overview:', error);
+                });
+        }
+
+        function updateMarketDisplay(data) {
+            // Update USD/INR
+            document.getElementById('usd-inr-rate').textContent = `₹${data.usd_inr.toFixed(2)}`;
+
+            // Update commodity prices
+            if (data.commodities.GOLD) {
+                const gold = data.commodities.GOLD;
+                document.getElementById('gold-price').textContent = `₹${gold.price.toLocaleString()}`;
+                updatePriceChange('gold-change', gold.change, gold.change_percent);
+            }
+
+            if (data.commodities.SILVER) {
+                const silver = data.commodities.SILVER;
+                document.getElementById('silver-price').textContent = `₹${silver.price.toLocaleString()}`;
+                updatePriceChange('silver-change', silver.change, silver.change_percent);
+            }
+
+            if (data.commodities.COPPER) {
+                const copper = data.commodities.COPPER;
+                document.getElementById('copper-price').textContent = `₹${copper.price.toLocaleString()}`;
+                updatePriceChange('copper-change', copper.change, copper.change_percent);
+            }
+
+            // Update market sentiment
+            if (data.market_sentiment) {
+                const sentiment = data.market_sentiment;
+                document.getElementById('bullish-percent').textContent = `${sentiment.bullish_percent.toFixed(0)}%`;
+                document.getElementById('neutral-percent').textContent = `${sentiment.neutral_percent.toFixed(0)}%`;
+                document.getElementById('bearish-percent').textContent = `${sentiment.bearish_percent.toFixed(0)}%`;
+                
+                document.getElementById('bullish-bar').style.width = `${sentiment.bullish_percent}%`;
+                document.getElementById('neutral-bar').style.width = `${sentiment.neutral_percent}%`;
+                document.getElementById('bearish-bar').style.width = `${sentiment.bearish_percent}%`;
+            }
+
+            // Update signals summary
+            let totalSignals = 0;
+            let highConfidenceSignals = 0;
+            let activeCommodities = 0;
+
+            if (data.signals) {
+                for (const commodity in data.signals) {
+                    let hasSignals = false;
+                    for (const timeframe in data.signals[commodity]) {
+                        const signals = data.signals[commodity][timeframe];
+                        totalSignals += signals.length;
+                        highConfidenceSignals += signals.filter(s => s.confidence > 0.7).length;
+                        if (signals.length > 0) hasSignals = true;
+                    }
+                    if (hasSignals) activeCommodities++;
+                }
+            }
+
+            document.getElementById('total-signals').textContent = totalSignals;
+            document.getElementById('high-confidence').textContent = highConfidenceSignals;
+            document.getElementById('active-commodities').textContent = activeCommodities;
+
+            // Update signals display
+            updateSignalsDisplay(data.signals);
+        }
+
+        function updatePriceChange(elementId, change, changePercent) {
+            const element = document.getElementById(elementId);
+            const isPositive = change >= 0;
+            const sign = isPositive ? '+' : '';
+            
+            element.textContent = `${sign}₹${change.toFixed(2)} (${sign}${changePercent.toFixed(2)}%)`;
+            element.className = `price-change ${isPositive ? 'positive' : 'negative'}`;
+        }
+
+        function updateSignalsDisplay(signals) {
+            const container = document.getElementById('signals-container');
+            
+            if (!signals || Object.keys(signals).length === 0) {
+                container.innerHTML = '<div class="text-center text-muted"><i class="fas fa-info-circle me-2"></i>No active signals at this time</div>';
+                return;
+            }
+
+            let html = '';
+            let signalCount = 0;
+
+            for (const commodity in signals) {
+                for (const timeframe in signals[commodity]) {
+                    const commoditySignals = signals[commodity][timeframe];
+                    
+                    if (currentSignalTab !== 'all' && currentSignalTab !== commodity.toLowerCase()) {
+                        continue;
+                    }
+
+                    for (const signal of commoditySignals) {
+                        if (signalCount >= 10) break; // Limit to 10 signals
+                        
+                        const confidenceClass = getConfidenceClass(signal.confidence);
+                        const confidenceText = getConfidenceText(signal.confidence);
+                        
+                        html += `
+                            <div class="signal-card ${confidenceClass}">
+                                <div class="row align-items-center">
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1">${signal.strategy_name}</h6>
+                                        <small class="text-muted">${commodity} ${timeframe.toUpperCase()}</small>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <span class="confidence-badge ${confidenceClass}">${confidenceText}</span>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <strong>₹${signal.entry_price.toLocaleString()}</strong>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <span class="badge ${signal.direction === 'LONG' ? 'bg-success' : 'bg-danger'}">${signal.direction}</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">${new Date(signal.timestamp).toLocaleString()}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        signalCount++;
+                    }
+                }
+            }
+
+            if (signalCount === 0) {
+                html = '<div class="text-center text-muted"><i class="fas fa-info-circle me-2"></i>No signals match the current filter</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        function getConfidenceClass(confidence) {
+            if (confidence >= 0.8) return 'high-confidence';
+            if (confidence >= 0.6) return 'medium-confidence';
+            return 'low-confidence';
+        }
+
+        function getConfidenceText(confidence) {
+            if (confidence >= 0.8) return 'Very High';
+            if (confidence >= 0.6) return 'High';
+            if (confidence >= 0.4) return 'Medium';
+            return 'Low';
+        }
+
+        function selectTimeframe(timeframe) {
+            currentTimeframe = timeframe;
+            
+            // Update button states
+            document.querySelectorAll('.btn-timeframe').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Reload signals with new timeframe
+            loadMarketOverview();
+        }
+
+        function showSignalTab(tab) {
+            currentSignalTab = tab;
+            
+            // Update button states
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update signals display
+            if (marketData.signals) {
+                updateSignalsDisplay(marketData.signals);
+            }
+        }
+
+        function navigateToCommodity(commodity, timeframe) {
+            window.location.href = `/commodity/${commodity.toLowerCase()}/${timeframe}`;
+        }
+
+        function refreshData() {
+            const btn = document.querySelector('.refresh-btn');
+            const icon = btn.querySelector('i');
+            
+            icon.classList.add('fa-spin');
+            btn.disabled = true;
+            
+            loadMarketOverview();
+            
+            setTimeout(() => {
+                icon.classList.remove('fa-spin');
+                btn.disabled = false;
+            }, 2000);
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('last-update').textContent = timeString;
+        }
+    </script>
+</body>
+</html>
