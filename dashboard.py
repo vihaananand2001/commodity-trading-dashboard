@@ -110,11 +110,9 @@ def get_usd_inr_rate():
         return 83.0  # Default fallback
 
 def convert_ounce_to_grams(price_per_ounce, usd_inr_rate):
-    """Convert price per ounce to price per gram in INR"""
-    # 1 ounce = 31.1035 grams
-    grams_per_ounce = 31.1035
-    price_per_gram_usd = price_per_ounce / grams_per_ounce
-    price_per_gram_inr = price_per_gram_usd * usd_inr_rate
+    """Convert price per ounce to price per gram in INR using specified formula"""
+    # Formula: (Future price in USD for ounce / 28.3495) * live USD to INR rate
+    price_per_gram_inr = (price_per_ounce / 28.3495) * usd_inr_rate
     return price_per_gram_inr
 
 def get_live_commodity_data(commodity):
@@ -152,13 +150,13 @@ def get_live_commodity_data(commodity):
                     prev_data = gold_data_raw.iloc[-2] if len(gold_data_raw) > 1 else latest_data
                     
                     price_per_ounce_usd = float(latest_data['Close'])
-                    price_per_gram_usd = price_per_ounce_usd / 31.1035  # Convert to per gram
-                    price_per_gram_inr = price_per_gram_usd * usd_inr_rate
+                    # Use the specified formula: (price_per_ounce / 28.3495) * usd_inr_rate
+                    price_per_gram_inr = (price_per_ounce_usd / 28.3495) * usd_inr_rate
                     price_per_10g = price_per_gram_inr * 10
                     
                     change_per_ounce = float(latest_data['Close'] - prev_data['Close'])
-                    change_per_gram = change_per_ounce / 31.1035
-                    change_per_10g = change_per_gram * usd_inr_rate * 10
+                    change_per_gram = (change_per_ounce / 28.3495) * usd_inr_rate
+                    change_per_10g = change_per_gram * 10
                     
                     return {
                         'close': price_per_10g,
@@ -202,13 +200,13 @@ def get_live_commodity_data(commodity):
                     prev_data = silver_data_raw.iloc[-2] if len(silver_data_raw) > 1 else latest_data
                     
                     price_per_ounce_usd = float(latest_data['Close'])
-                    price_per_gram_usd = price_per_ounce_usd / 31.1035  # Convert to per gram
-                    price_per_gram_inr = price_per_gram_usd * usd_inr_rate
+                    # Use the specified formula: (price_per_ounce / 28.3495) * usd_inr_rate
+                    price_per_gram_inr = (price_per_ounce_usd / 28.3495) * usd_inr_rate
                     price_per_kg = price_per_gram_inr * 1000
                     
                     change_per_ounce = float(latest_data['Close'] - prev_data['Close'])
-                    change_per_gram = change_per_ounce / 31.1035
-                    change_per_kg = change_per_gram * usd_inr_rate * 1000
+                    change_per_gram = (change_per_ounce / 28.3495) * usd_inr_rate
+                    change_per_kg = change_per_gram * 1000
                     
                     return {
                         'close': price_per_kg,
