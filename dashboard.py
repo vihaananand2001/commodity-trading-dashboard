@@ -94,25 +94,32 @@ def initialize_traders():
 def get_usd_inr_rate():
     """Get live USD/INR exchange rate"""
     try:
-        # Check if yahoo_fetcher has the method
+        # Try to get USD/INR directly using yfinance
+        import yfinance as yf
+        usd_inr_ticker = yf.Ticker('USDINR=X')
+        usd_inr_data = usd_inr_ticker.history(period='2d')
+        if not usd_inr_data.empty:
+            rate = float(usd_inr_data['Close'].iloc[-1])
+            logger.info(f"Fetched USD/INR rate: {rate}")
+            return rate
+        
+        # Fallback: try Yahoo Finance fetcher if available
         if hasattr(yahoo_fetcher, 'get_usd_inr_rate'):
-            return yahoo_fetcher.get_usd_inr_rate()
-        else:
-            # Fallback: try to get USD/INR directly
-            import yfinance as yf
-            usd_inr_ticker = yf.Ticker('USDINR=X')
-            usd_inr_data = usd_inr_ticker.history(period='2d')
-            if not usd_inr_data.empty:
-                return float(usd_inr_data['Close'].iloc[-1])
-            return 83.0
+            rate = yahoo_fetcher.get_usd_inr_rate()
+            logger.info(f"Fetched USD/INR rate from fetcher: {rate}")
+            return rate
+            
+        logger.warning("Could not fetch USD/INR rate, using default")
+        return 83.0
     except Exception as e:
         logger.error(f"Error fetching USD/INR: {e}")
         return 83.0  # Default fallback
 
 def convert_ounce_to_grams(price_per_ounce, usd_inr_rate):
-    """Convert price per ounce to price per gram in INR using specified formula"""
-    # Formula: (Future price in USD for ounce / 28.3495) * live USD to INR rate
-    price_per_gram_inr = (price_per_ounce / 28.3495) * usd_inr_rate
+    """Convert price per ounce to price per gram in INR using MCX conversion factor"""
+    # MCX uses troy ounces: 1 troy ounce = 31.1035 grams
+    # Formula: (Future price in USD for troy ounce / 31.1035) * live USD to INR rate
+    price_per_gram_inr = (price_per_ounce / 31.1035) * usd_inr_rate
     return price_per_gram_inr
 
 def get_live_commodity_data(commodity):
@@ -150,12 +157,12 @@ def get_live_commodity_data(commodity):
                     prev_data = gold_data_raw.iloc[-2] if len(gold_data_raw) > 1 else latest_data
                     
                     price_per_ounce_usd = float(latest_data['Close'])
-                    # Use the specified formula: (price_per_ounce / 28.3495) * usd_inr_rate
-                    price_per_gram_inr = (price_per_ounce_usd / 28.3495) * usd_inr_rate
+                    # Use MCX conversion: (price_per_troy_ounce / 31.1035) * usd_inr_rate
+                    price_per_gram_inr = (price_per_ounce_usd / 31.1035) * usd_inr_rate
                     price_per_10g = price_per_gram_inr * 10
                     
                     change_per_ounce = float(latest_data['Close'] - prev_data['Close'])
-                    change_per_gram = (change_per_ounce / 28.3495) * usd_inr_rate
+                    change_per_gram = (change_per_ounce / 31.1035) * usd_inr_rate
                     change_per_10g = change_per_gram * 10
                     
                     return {
@@ -200,12 +207,12 @@ def get_live_commodity_data(commodity):
                     prev_data = silver_data_raw.iloc[-2] if len(silver_data_raw) > 1 else latest_data
                     
                     price_per_ounce_usd = float(latest_data['Close'])
-                    # Use the specified formula: (price_per_ounce / 28.3495) * usd_inr_rate
-                    price_per_gram_inr = (price_per_ounce_usd / 28.3495) * usd_inr_rate
+                    # Use MCX conversion: (price_per_troy_ounce / 31.1035) * usd_inr_rate
+                    price_per_gram_inr = (price_per_ounce_usd / 31.1035) * usd_inr_rate
                     price_per_kg = price_per_gram_inr * 1000
                     
                     change_per_ounce = float(latest_data['Close'] - prev_data['Close'])
-                    change_per_gram = (change_per_ounce / 28.3495) * usd_inr_rate
+                    change_per_gram = (change_per_ounce / 31.1035) * usd_inr_rate
                     change_per_kg = change_per_gram * 1000
                     
                     return {
@@ -353,8 +360,7 @@ def get_market_overview():
         
         # Get USD/INR rate
         try:
-            usd_inr_data = yahoo_fetcher.get_live_price('USDINR=X')
-            overview['usd_inr'] = usd_inr_data.get('close', 83.0)
+            overview['usd_inr'] = get_usd_inr_rate()
         except:
             overview['usd_inr'] = 83.0
         
