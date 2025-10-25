@@ -94,8 +94,17 @@ def initialize_traders():
 def get_usd_inr_rate():
     """Get live USD/INR exchange rate"""
     try:
-        # Use the Yahoo Finance fetcher's built-in USD/INR method
-        return yahoo_fetcher.get_usd_inr_rate()
+        # Check if yahoo_fetcher has the method
+        if hasattr(yahoo_fetcher, 'get_usd_inr_rate'):
+            return yahoo_fetcher.get_usd_inr_rate()
+        else:
+            # Fallback: try to get USD/INR directly
+            import yfinance as yf
+            usd_inr_ticker = yf.Ticker('USDINR=X')
+            usd_inr_data = usd_inr_ticker.history(period='2d')
+            if not usd_inr_data.empty:
+                return float(usd_inr_data['Close'].iloc[-1])
+            return 83.0
     except Exception as e:
         logger.error(f"Error fetching USD/INR: {e}")
         return 83.0  # Default fallback
@@ -114,42 +123,104 @@ def get_live_commodity_data(commodity):
         usd_inr_rate = get_usd_inr_rate()
         
         if commodity == 'GOLD':
-            # Get gold price (already converted to INR by Yahoo Finance fetcher)
-            gold_data = yahoo_fetcher.get_live_price('GOLD')
+            # Try Yahoo Finance fetcher first, then fallback to direct yfinance
+            try:
+                gold_data = yahoo_fetcher.get_live_price('GOLD')
+                price_inr = gold_data.get('close', 0)
+                if price_inr > 0:
+                    # The price is already in INR per gram, convert to per 10 grams
+                    price_per_10g = price_inr * 10
+                    return {
+                        'close': price_per_10g,
+                        'change': gold_data.get('change', 0) * 10,
+                        'change_percent': gold_data.get('change_pct', 0),
+                        'volume': gold_data.get('volume', 0),
+                        'symbol': 'GOLD',
+                        'name': 'Gold (₹/10g)',
+                        'usd_inr_rate': usd_inr_rate
+                    }
+            except:
+                pass
             
-            price_inr = gold_data.get('close', 0)
-            if price_inr > 0:
-                # The price is already in INR per gram, convert to per 10 grams
-                price_per_10g = price_inr * 10
-                
-                return {
-                    'close': price_per_10g,
-                    'change': gold_data.get('change', 0) * 10,
-                    'change_percent': gold_data.get('change_pct', 0),
-                    'volume': gold_data.get('volume', 0),
-                    'symbol': 'GOLD',
-                    'name': 'Gold (₹/10g)',
-                    'usd_inr_rate': usd_inr_rate
-                }
+            # Fallback: Get gold data directly using yfinance
+            try:
+                import yfinance as yf
+                gold_ticker = yf.Ticker('GC=F')
+                gold_data_raw = gold_ticker.history(period='2d')
+                if not gold_data_raw.empty:
+                    latest_data = gold_data_raw.iloc[-1]
+                    prev_data = gold_data_raw.iloc[-2] if len(gold_data_raw) > 1 else latest_data
+                    
+                    price_per_ounce_usd = float(latest_data['Close'])
+                    price_per_gram_usd = price_per_ounce_usd / 31.1035  # Convert to per gram
+                    price_per_gram_inr = price_per_gram_usd * usd_inr_rate
+                    price_per_10g = price_per_gram_inr * 10
+                    
+                    change_per_ounce = float(latest_data['Close'] - prev_data['Close'])
+                    change_per_gram = change_per_ounce / 31.1035
+                    change_per_10g = change_per_gram * usd_inr_rate * 10
+                    
+                    return {
+                        'close': price_per_10g,
+                        'change': change_per_10g,
+                        'change_percent': float((latest_data['Close'] - prev_data['Close']) / prev_data['Close'] * 100),
+                        'volume': int(latest_data['Volume']),
+                        'symbol': 'GOLD',
+                        'name': 'Gold (₹/10g)',
+                        'usd_inr_rate': usd_inr_rate
+                    }
+            except Exception as e:
+                logger.error(f"Error fetching gold data: {e}")
         
         elif commodity == 'SILVER':
-            # Get silver price (already converted to INR by Yahoo Finance fetcher)
-            silver_data = yahoo_fetcher.get_live_price('SILVER')
+            # Try Yahoo Finance fetcher first, then fallback to direct yfinance
+            try:
+                silver_data = yahoo_fetcher.get_live_price('SILVER')
+                price_inr = silver_data.get('close', 0)
+                if price_inr > 0:
+                    # The price is already in INR per gram, convert to per kg
+                    price_per_kg = price_inr * 1000
+                    return {
+                        'close': price_per_kg,
+                        'change': silver_data.get('change', 0) * 1000,
+                        'change_percent': silver_data.get('change_pct', 0),
+                        'volume': silver_data.get('volume', 0),
+                        'symbol': 'SILVER',
+                        'name': 'Silver (₹/kg)',
+                        'usd_inr_rate': usd_inr_rate
+                    }
+            except:
+                pass
             
-            price_inr = silver_data.get('close', 0)
-            if price_inr > 0:
-                # The price is already in INR per gram, convert to per kg
-                price_per_kg = price_inr * 1000
-                
-                return {
-                    'close': price_per_kg,
-                    'change': silver_data.get('change', 0) * 1000,
-                    'change_percent': silver_data.get('change_pct', 0),
-                    'volume': silver_data.get('volume', 0),
-                    'symbol': 'SILVER',
-                    'name': 'Silver (₹/kg)',
-                    'usd_inr_rate': usd_inr_rate
-                }
+            # Fallback: Get silver data directly using yfinance
+            try:
+                import yfinance as yf
+                silver_ticker = yf.Ticker('SI=F')
+                silver_data_raw = silver_ticker.history(period='2d')
+                if not silver_data_raw.empty:
+                    latest_data = silver_data_raw.iloc[-1]
+                    prev_data = silver_data_raw.iloc[-2] if len(silver_data_raw) > 1 else latest_data
+                    
+                    price_per_ounce_usd = float(latest_data['Close'])
+                    price_per_gram_usd = price_per_ounce_usd / 31.1035  # Convert to per gram
+                    price_per_gram_inr = price_per_gram_usd * usd_inr_rate
+                    price_per_kg = price_per_gram_inr * 1000
+                    
+                    change_per_ounce = float(latest_data['Close'] - prev_data['Close'])
+                    change_per_gram = change_per_ounce / 31.1035
+                    change_per_kg = change_per_gram * usd_inr_rate * 1000
+                    
+                    return {
+                        'close': price_per_kg,
+                        'change': change_per_kg,
+                        'change_percent': float((latest_data['Close'] - prev_data['Close']) / prev_data['Close'] * 100),
+                        'volume': int(latest_data['Volume']),
+                        'symbol': 'SILVER',
+                        'name': 'Silver (₹/kg)',
+                        'usd_inr_rate': usd_inr_rate
+                    }
+            except Exception as e:
+                logger.error(f"Error fetching silver data: {e}")
         
         elif commodity == 'COPPER':
             # For copper, we'll use a fallback approach since it's not in the predefined symbols
