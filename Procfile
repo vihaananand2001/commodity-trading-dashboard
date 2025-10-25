@@ -1,1 +1,1 @@
-web: python professional_dashboard.py
+web: python dashboard.py

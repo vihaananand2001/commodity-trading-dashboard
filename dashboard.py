@@ -133,8 +133,98 @@ def update_market_data():
 
 @app.route('/')
 def index():
-    """Main dashboard page."""
-    return render_template('dashboard.html')
+    """Professional homepage with market overview."""
+    return render_template('professional_homepage.html')
+
+@app.route('/commodity/<commodity>/<timeframe>')
+def commodity_page(commodity, timeframe):
+    """Individual commodity page."""
+    return render_template('commodity_detail.html', 
+                         commodity=commodity.upper(), 
+                         timeframe=timeframe)
+
+@app.route('/api/market-overview')
+def get_market_overview():
+    """Get comprehensive market overview for homepage."""
+    try:
+        overview = {
+            'usd_inr': 83.0,  # Default fallback
+            'commodities': {},
+            'signals': {},
+            'market_sentiment': {},
+            'last_update': datetime.now().isoformat()
+        }
+        
+        # Get USD/INR rate
+        try:
+            usd_inr_data = yahoo_fetcher.get_live_price('USDINR=X')
+            overview['usd_inr'] = usd_inr_data.get('close', 83.0)
+        except:
+            overview['usd_inr'] = 83.0
+        
+        # Get all commodity data
+        for commodity in ['GOLD', 'SILVER', 'COPPER']:
+            try:
+                live_price = yahoo_fetcher.get_live_price(commodity)
+                overview['commodities'][commodity] = {
+                    'price': live_price.get('close', 0),
+                    'change': live_price.get('change', 0),
+                    'change_percent': live_price.get('change_percent', 0),
+                    'volume': live_price.get('volume', 0),
+                    'symbol': live_price.get('symbol', ''),
+                    'name': live_price.get('name', commodity)
+                }
+            except Exception as e:
+                logger.warning(f"Could not get data for {commodity}: {e}")
+                overview['commodities'][commodity] = {
+                    'price': 0, 'change': 0, 'change_percent': 0, 'volume': 0, 'symbol': '', 'name': commodity
+                }
+        
+        # Get signals for all commodities and timeframes
+        for commodity in ['GOLD', 'SILVER']:
+            overview['signals'][commodity] = {}
+            for timeframe in ['1h', '4h', '1d']:
+                try:
+                    signals = data_service.generate_trading_signals(commodity.lower(), timeframe)
+                    overview['signals'][commodity][timeframe] = signals[:3]  # Top 3 signals
+                except Exception as e:
+                    logger.warning(f"Could not get signals for {commodity} {timeframe}: {e}")
+                    overview['signals'][commodity][timeframe] = []
+        
+        # Calculate market sentiment
+        total_signals = 0
+        bullish_signals = 0
+        bearish_signals = 0
+        
+        for commodity_signals in overview['signals'].values():
+            for timeframe_signals in commodity_signals.values():
+                for signal in timeframe_signals:
+                    total_signals += 1
+                    if signal.get('direction', '').upper() == 'LONG':
+                        bullish_signals += 1
+                    elif signal.get('direction', '').upper() == 'SHORT':
+                        bearish_signals += 1
+        
+        if total_signals > 0:
+            overview['market_sentiment'] = {
+                'bullish_percent': (bullish_signals / total_signals) * 100,
+                'bearish_percent': (bearish_signals / total_signals) * 100,
+                'neutral_percent': 100 - ((bullish_signals + bearish_signals) / total_signals) * 100,
+                'total_signals': total_signals
+            }
+        else:
+            overview['market_sentiment'] = {
+                'bullish_percent': 50,
+                'bearish_percent': 50,
+                'neutral_percent': 0,
+                'total_signals': 0
+            }
+        
+        return jsonify(overview)
+        
+    except Exception as e:
+        logger.error(f"Error getting market overview: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/market-data/<commodity>')
 def get_market_data(commodity):
@@ -413,7 +503,7 @@ def start_data_updater():
     logger.info("Market data updater started")
 
 if __name__ == '__main__':
-    logger.info("Starting Live Trading Dashboard...")
+    logger.info("Starting Professional Trading Dashboard...")
     
     # Initialize traders and scorers
     initialize_traders()
@@ -421,5 +511,9 @@ if __name__ == '__main__':
     # Start background data updater
     start_data_updater()
     
+    # Get port from environment variable (for Render deployment)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') != 'production'
+    
     # Run Flask app
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=debug, host='0.0.0.0', port=port)
