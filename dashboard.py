@@ -91,62 +91,147 @@ def initialize_traders():
             except Exception as e:
                 logger.error(f"Error initializing {commodity} {timeframe}: {e}")
 
+def get_usd_inr_rate():
+    """Get live USD/INR exchange rate"""
+    try:
+        usd_inr_data = yahoo_fetcher.get_live_price('USDINR=X')
+        return usd_inr_data.get('close', 83.0)
+    except Exception as e:
+        logger.error(f"Error fetching USD/INR: {e}")
+        return 83.0  # Default fallback
+
+def convert_ounce_to_grams(price_per_ounce, usd_inr_rate):
+    """Convert price per ounce to price per gram in INR"""
+    # 1 ounce = 31.1035 grams
+    grams_per_ounce = 31.1035
+    price_per_gram_usd = price_per_ounce / grams_per_ounce
+    price_per_gram_inr = price_per_gram_usd * usd_inr_rate
+    return price_per_gram_inr
+
+def get_live_commodity_data(commodity):
+    """Get live commodity data with proper conversion"""
+    try:
+        usd_inr_rate = get_usd_inr_rate()
+        
+        if commodity == 'GOLD':
+            # Get gold price in USD per ounce
+            gold_data = yahoo_fetcher.get_live_price('GC=F')  # Gold futures
+            if not gold_data or gold_data.get('close', 0) == 0:
+                gold_data = yahoo_fetcher.get_live_price('GOLD')  # Fallback
+            
+            price_per_ounce = gold_data.get('close', 0)
+            if price_per_ounce > 0:
+                # Convert to INR per gram
+                price_per_gram = convert_ounce_to_grams(price_per_ounce, usd_inr_rate)
+                # Convert to INR per 10 grams (standard Indian gold pricing)
+                price_per_10g = price_per_gram * 10
+                
+                return {
+                    'close': price_per_10g,
+                    'change': gold_data.get('change', 0) * usd_inr_rate / 31.1035 * 10,
+                    'change_percent': gold_data.get('change_percent', 0),
+                    'volume': gold_data.get('volume', 0),
+                    'symbol': 'GOLD',
+                    'name': 'Gold (₹/10g)',
+                    'usd_price_per_ounce': price_per_ounce,
+                    'usd_inr_rate': usd_inr_rate
+                }
+        
+        elif commodity == 'SILVER':
+            # Get silver price in USD per ounce
+            silver_data = yahoo_fetcher.get_live_price('SI=F')  # Silver futures
+            if not silver_data or silver_data.get('close', 0) == 0:
+                silver_data = yahoo_fetcher.get_live_price('SILVER')  # Fallback
+            
+            price_per_ounce = silver_data.get('close', 0)
+            if price_per_ounce > 0:
+                # Convert to INR per gram
+                price_per_gram = convert_ounce_to_grams(price_per_ounce, usd_inr_rate)
+                # Convert to INR per kg (standard Indian silver pricing)
+                price_per_kg = price_per_gram * 1000
+                
+                return {
+                    'close': price_per_kg,
+                    'change': silver_data.get('change', 0) * usd_inr_rate / 31.1035 * 1000,
+                    'change_percent': silver_data.get('change_percent', 0),
+                    'volume': silver_data.get('volume', 0),
+                    'symbol': 'SILVER',
+                    'name': 'Silver (₹/kg)',
+                    'usd_price_per_ounce': price_per_ounce,
+                    'usd_inr_rate': usd_inr_rate
+                }
+        
+        elif commodity == 'COPPER':
+            # Get copper price in USD per pound
+            copper_data = yahoo_fetcher.get_live_price('HG=F')  # Copper futures
+            if not copper_data or copper_data.get('close', 0) == 0:
+                copper_data = yahoo_fetcher.get_live_price('COPPER')  # Fallback
+            
+            price_per_pound = copper_data.get('close', 0)
+            if price_per_pound > 0:
+                # Convert to INR per kg
+                # 1 pound = 0.453592 kg
+                price_per_kg_usd = price_per_pound / 0.453592
+                price_per_kg_inr = price_per_kg_usd * usd_inr_rate
+                
+                return {
+                    'close': price_per_kg_inr,
+                    'change': copper_data.get('change', 0) * usd_inr_rate / 0.453592,
+                    'change_percent': copper_data.get('change_percent', 0),
+                    'volume': copper_data.get('volume', 0),
+                    'symbol': 'COPPER',
+                    'name': 'Copper (₹/kg)',
+                    'usd_price_per_pound': price_per_pound,
+                    'usd_inr_rate': usd_inr_rate
+                }
+        
+        # Fallback
+        return {
+            'close': 0, 'change': 0, 'change_percent': 0, 'volume': 0,
+            'symbol': commodity, 'name': commodity, 'usd_inr_rate': usd_inr_rate
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting live data for {commodity}: {e}")
+        return {
+            'close': 0, 'change': 0, 'change_percent': 0, 'volume': 0,
+            'symbol': commodity, 'name': commodity, 'usd_inr_rate': 83.0
+        }
+
 def update_market_data():
-    """Update market data cache."""
+    """Update market data cache with live data and proper conversions."""
     global market_data_cache, last_update_time
     
     while True:
         try:
             current_time = datetime.now()
+            logger.info("Updating market data with live prices...")
             
-            # Use Yahoo Finance for real data or MCX fetcher for simulated data
-            if USE_YAHOO_FINANCE:
-                logger.info("Background thread using Yahoo Finance for real-time data")
-                for commodity in ['GOLD', 'SILVER']:
-                    # Get live price data from Yahoo Finance
-                    live_price = yahoo_fetcher.get_live_price(commodity)
-                    logger.info(f"Background thread {commodity} Yahoo data: ₹{live_price.get('close', 0):,.2f}")
-                    
-                    # Get historical data for analysis
-                    historical_1h = yahoo_fetcher.get_historical_data(commodity, '1d', '1h')
-                    historical_4h = yahoo_fetcher.get_historical_data(commodity, '5d', '4h')
-            else:
-                # Use simulated MCX data
-                fresh_fetcher = MCXDataFetcher()
-                logger.info(f"Background thread using simulated MCX data")
-                for commodity in ['GOLD', 'SILVER']:
-                    # Get live price data
-                    live_price = fresh_fetcher.get_live_price(commodity)
-                    logger.info(f"Background thread {commodity} simulated data: symbol={live_price.get('symbol')}, name={live_price.get('name')}, lot_size={live_price.get('lot_size')}")
-                    
-                    # Get historical data for analysis
-                    historical_1h = fresh_fetcher.get_historical_data(commodity, '1h', 100)
-                    historical_4h = fresh_fetcher.get_historical_data(commodity, '4h', 100)
-                
             # Update cache for all commodities
-            for commodity in ['GOLD', 'SILVER']:
-                if USE_YAHOO_FINANCE:
-                    live_price = yahoo_fetcher.get_live_price(commodity)
+            for commodity in ['GOLD', 'SILVER', 'COPPER']:
+                try:
+                    live_price = get_live_commodity_data(commodity)
+                    
+                    # Get historical data for analysis
                     historical_1h = yahoo_fetcher.get_historical_data(commodity, '1d', '1h')
                     historical_4h = yahoo_fetcher.get_historical_data(commodity, '5d', '4h')
-                else:
-                    fresh_fetcher = MCXDataFetcher()
-                    live_price = fresh_fetcher.get_live_price(commodity)
-                    historical_1h = fresh_fetcher.get_historical_data(commodity, '1h', 100)
-                    historical_4h = fresh_fetcher.get_historical_data(commodity, '4h', 100)
-                
-                # Update cache
-                market_data_cache[commodity] = {
-                    'live_price': live_price,
-                    'historical_1h': historical_1h.to_dict('records') if not historical_1h.empty else [],
-                    'historical_4h': historical_4h.to_dict('records') if not historical_4h.empty else [],
-                    'last_update': current_time.isoformat()
-                }
-                
-                last_update_time[commodity] = current_time
+                    
+                    # Update cache
+                    market_data_cache[commodity] = {
+                        'live_price': live_price,
+                        'historical_1h': historical_1h.to_dict('records') if not historical_1h.empty else [],
+                        'historical_4h': historical_4h.to_dict('records') if not historical_4h.empty else [],
+                        'last_update': current_time.isoformat()
+                    }
+                    
+                    last_update_time[commodity] = current_time
+                    logger.info(f"Updated {commodity}: ₹{live_price.get('close', 0):,.2f} (USD/INR: {live_price.get('usd_inr_rate', 0):.2f})")
+                    
+                except Exception as e:
+                    logger.error(f"Error updating {commodity}: {e}")
             
-            logger.info("Market data updated with fresh MCX specs")
-            time.sleep(30)  # Update every 30 seconds for now
+            logger.info("Market data updated with live prices and conversions")
+            time.sleep(30)  # Update every 30 seconds
             
         except Exception as e:
             logger.error(f"Error updating market data: {e}")
@@ -197,22 +282,23 @@ def get_market_overview():
         except:
             overview['usd_inr'] = 83.0
         
-        # Get all commodity data
+        # Get all commodity data with proper conversions
         for commodity in ['GOLD', 'SILVER', 'COPPER']:
             try:
-                live_price = yahoo_fetcher.get_live_price(commodity)
+                live_price = get_live_commodity_data(commodity)
                 overview['commodities'][commodity] = {
                     'price': live_price.get('close', 0),
                     'change': live_price.get('change', 0),
                     'change_percent': live_price.get('change_percent', 0),
                     'volume': live_price.get('volume', 0),
                     'symbol': live_price.get('symbol', ''),
-                    'name': live_price.get('name', commodity)
+                    'name': live_price.get('name', commodity),
+                    'usd_inr_rate': live_price.get('usd_inr_rate', 83.0)
                 }
             except Exception as e:
                 logger.warning(f"Could not get data for {commodity}: {e}")
                 overview['commodities'][commodity] = {
-                    'price': 0, 'change': 0, 'change_percent': 0, 'volume': 0, 'symbol': '', 'name': commodity
+                    'price': 0, 'change': 0, 'change_percent': 0, 'volume': 0, 'symbol': '', 'name': commodity, 'usd_inr_rate': 83.0
                 }
         
         # Get signals for all commodities and timeframes
@@ -514,23 +600,26 @@ def get_performance(commodity):
 
 def start_data_updater():
     """Start the background data updater thread."""
-    # Force initial cache update with Yahoo Finance
-    logger.info("Forcing initial cache update with Yahoo Finance...")
+    # Force initial cache update with live data and conversions
+    logger.info("Forcing initial cache update with live data and conversions...")
     current_time = datetime.now()
     
-    for commodity in ['GOLD', 'SILVER']:
-        live_price = yahoo_fetcher.get_live_price(commodity)
-        historical_1h = yahoo_fetcher.get_historical_data(commodity, '1d', '1h')
-        historical_4h = yahoo_fetcher.get_historical_data(commodity, '5d', '4h')
-        
-        market_data_cache[commodity] = {
-            'live_price': live_price,
-            'historical_1h': historical_1h.to_dict('records') if not historical_1h.empty else [],
-            'historical_4h': historical_4h.to_dict('records') if not historical_4h.empty else [],
-            'last_update': current_time.isoformat()
-        }
-        last_update_time[commodity] = current_time
-        logger.info(f"Initial cache updated for {commodity}: symbol={live_price.get('symbol')}, name={live_price.get('name')}, price=₹{live_price.get('close', 0):,.2f}")
+    for commodity in ['GOLD', 'SILVER', 'COPPER']:
+        try:
+            live_price = get_live_commodity_data(commodity)
+            historical_1h = yahoo_fetcher.get_historical_data(commodity, '1d', '1h')
+            historical_4h = yahoo_fetcher.get_historical_data(commodity, '5d', '4h')
+            
+            market_data_cache[commodity] = {
+                'live_price': live_price,
+                'historical_1h': historical_1h.to_dict('records') if not historical_1h.empty else [],
+                'historical_4h': historical_4h.to_dict('records') if not historical_4h.empty else [],
+                'last_update': current_time.isoformat()
+            }
+            last_update_time[commodity] = current_time
+            logger.info(f"Initial cache updated for {commodity}: {live_price.get('name', commodity)} = ₹{live_price.get('close', 0):,.2f} (USD/INR: {live_price.get('usd_inr_rate', 0):.2f})")
+        except Exception as e:
+            logger.error(f"Error initializing {commodity}: {e}")
     
     # Start background thread
     updater_thread = threading.Thread(target=update_market_data, daemon=True)
