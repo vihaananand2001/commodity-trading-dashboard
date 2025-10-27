@@ -224,3 +224,6 @@ python src/main.py --optimize-all --commodity gold --timeframe 4h --no-multiproc
 
 
 
+
+
+

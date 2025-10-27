@@ -243,3 +243,6 @@ We found **3 profitable patterns** with:
 
 
 
+
+
+

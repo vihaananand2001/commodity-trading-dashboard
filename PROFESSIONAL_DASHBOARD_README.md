@@ -242,3 +242,4 @@ python start_professional_dashboard.py
    - Analyze different timeframes
 
 The professional dashboard provides a comprehensive, JP Morgan-style interface for commodity trading analysis with live data, market sentiment, and professional signal management.
+

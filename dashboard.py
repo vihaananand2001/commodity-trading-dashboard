@@ -128,7 +128,39 @@ def get_live_commodity_data(commodity):
         usd_inr_rate = get_usd_inr_rate()
         
         if commodity == 'GOLD':
-            # Try Yahoo Finance fetcher first, then fallback to direct yfinance
+            # Use MCX data fetcher for Indian Gold prices (no conversion needed)
+            try:
+                # Check if mcx_fetcher is properly initialized
+                if hasattr(mcx_fetcher, 'get_live_price'):
+                    mcx_data = mcx_fetcher.get_live_price('GOLD')
+                    logger.info(f"MCX Gold data: {mcx_data}")
+                    
+                    if mcx_data and mcx_data.get('close', 0) > 0:
+                        # MCX Gold prices are already in INR per gram
+                        price_per_gram = mcx_data.get('close', 0)
+                        price_per_10g = price_per_gram * 10  # Convert to per 10 grams
+                        
+                        logger.info(f"Using MCX Gold price: ₹{price_per_10g:,.2f} per 10g")
+                        
+                        return {
+                            'close': price_per_10g,
+                            'change': mcx_data.get('change', 0) * 10,
+                            'change_percent': mcx_data.get('change_pct', 0),
+                            'volume': mcx_data.get('volume', 0),
+                            'symbol': 'GOLD',
+                            'name': 'Gold (₹/10g) - MCX',
+                            'usd_inr_rate': usd_inr_rate,
+                            'source': 'MCX',
+                            'contract_size': mcx_data.get('contract_size', '100 grams')
+                        }
+                    else:
+                        logger.warning("MCX data returned empty or zero price")
+                else:
+                    logger.warning("MCX fetcher does not have get_live_price method")
+            except Exception as e:
+                logger.error(f"Error fetching MCX Gold data: {e}")
+            
+            # Fallback: Try Yahoo Finance fetcher
             try:
                 gold_data = yahoo_fetcher.get_live_price('GOLD')
                 price_inr = gold_data.get('close', 0)
@@ -141,13 +173,14 @@ def get_live_commodity_data(commodity):
                         'change_percent': gold_data.get('change_pct', 0),
                         'volume': gold_data.get('volume', 0),
                         'symbol': 'GOLD',
-                        'name': 'Gold (₹/10g)',
-                        'usd_inr_rate': usd_inr_rate
+                        'name': 'Gold (₹/10g) - Yahoo',
+                        'usd_inr_rate': usd_inr_rate,
+                        'source': 'Yahoo Finance'
                     }
             except:
                 pass
             
-            # Fallback: Get gold data directly using yfinance
+            # Final fallback: Get gold data directly using yfinance
             try:
                 import yfinance as yf
                 gold_ticker = yf.Ticker('GC=F')
@@ -171,8 +204,9 @@ def get_live_commodity_data(commodity):
                         'change_percent': float((latest_data['Close'] - prev_data['Close']) / prev_data['Close'] * 100),
                         'volume': int(latest_data['Volume']),
                         'symbol': 'GOLD',
-                        'name': 'Gold (₹/10g)',
-                        'usd_inr_rate': usd_inr_rate
+                        'name': 'Gold (₹/10g) - Converted',
+                        'usd_inr_rate': usd_inr_rate,
+                        'source': 'Yahoo Finance (Converted)'
                     }
             except Exception as e:
                 logger.error(f"Error fetching gold data: {e}")
@@ -338,6 +372,40 @@ def test_route():
         'message': 'Professional Trading Dashboard is running',
         'timestamp': datetime.now().isoformat()
     })
+
+@app.route('/api/scalping/gold')
+def get_gold_scalping_data():
+    """Get Gold scalping data using Indian MCX prices."""
+    try:
+        from src.gold_scalping_strategy import GoldScalpingStrategy
+        
+        strategy = GoldScalpingStrategy()
+        
+        # Get market data
+        market_data = strategy.get_market_data()
+        
+        # Get performance summary
+        performance = strategy.get_performance_summary()
+        
+        # Get recent trades
+        recent_trades = strategy.trades[-5:] if strategy.trades else []
+        
+        return jsonify({
+            'market_data': market_data,
+            'performance': performance,
+            'recent_trades': recent_trades,
+            'strategy_params': {
+                'stop_loss_points': strategy.stop_loss_points,
+                'take_profit_points': strategy.take_profit_points,
+                'max_hold_minutes': strategy.max_hold_minutes,
+                'position_size': strategy.position_size
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting scalping data: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/commodity/<commodity>/<timeframe>')
 def commodity_page(commodity, timeframe):

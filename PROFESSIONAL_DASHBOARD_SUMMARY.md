@@ -217,3 +217,4 @@ python3 start_professional_dashboard.py
 Open your browser to: http://localhost:5001
 
 The dashboard provides a comprehensive, professional interface for commodity trading analysis with live data, market sentiment, and professional signal management - exactly as requested for a JP Morgan-style professional trading dashboard.
+
