@@ -18,9 +18,11 @@ from typing import Dict, List, Optional, Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
-from src.utils import get_logger
+import logging
 
-logger = get_logger(__name__)
+# Create logger without dependency on utils
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 class MCXDataFetcher:
     """
@@ -59,13 +61,25 @@ class MCXDataFetcher:
                 'currency': 'INR',
                 'unit': 'grams',
                 'contract_size': '5 kg'
+            },
+            'COPPER': {
+                'symbol': 'COPPERM',
+                'name': 'COPPER MINI',
+                'expiry': '2025-12-05',
+                'lot_size': 1000,  # kg (Mini contract)
+                'tick_size': 0.05,  # INR per kg
+                'margin': 0.05,     # 5% margin
+                'currency': 'INR',
+                'unit': 'kg',
+                'contract_size': '1 tonne'
             }
         }
         
-        # Base prices for simulation (realistic MCX prices)
+        # Base prices for simulation (realistic MCX prices as of Oct 2025)
         self.base_prices = {
-            'GOLD': 75000.0,   # INR per 10 grams (realistic current price)
-            'SILVER': 95000.0  # INR per kg (realistic current price)
+            'GOLD': 125620.0,   # INR per 10 grams (December futures realistic price)
+            'SILVER': 145000.0, # INR per kg (December futures realistic price)
+            'COPPER': 850.0     # INR per kg (December futures realistic price)
         }
         
         # Last update time
@@ -92,15 +106,22 @@ class MCXDataFetcher:
             if commodity == 'GOLD':
                 # Gold price simulation with realistic volatility
                 time_factor = (current_time.hour + current_time.minute / 60.0) / 24.0
-                volatility = np.random.normal(0, 50)  # ±50 INR volatility
-                trend = np.sin(time_factor * 2 * np.pi) * 100  # Daily trend
+                volatility = np.random.normal(0, 200)  # ±200 INR volatility for Gold
+                trend = np.sin(time_factor * 2 * np.pi) * 300  # Daily trend
                 price_change = volatility + trend
                 current_price = base_price + price_change
-            else:  # SILVER
+            elif commodity == 'SILVER':
                 # Silver price simulation (more volatile than gold)
                 time_factor = (current_time.hour + current_time.minute / 60.0) / 24.0
-                volatility = np.random.normal(0, 100)  # ±100 INR volatility
-                trend = np.sin(time_factor * 2 * np.pi) * 200  # Daily trend
+                volatility = np.random.normal(0, 500)  # ±500 INR volatility for Silver
+                trend = np.sin(time_factor * 2 * np.pi) * 800  # Daily trend
+                price_change = volatility + trend
+                current_price = base_price + price_change
+            else:  # COPPER
+                # Copper price simulation
+                time_factor = (current_time.hour + current_time.minute / 60.0) / 24.0
+                volatility = np.random.normal(0, 5)  # ±5 INR volatility for Copper
+                trend = np.sin(time_factor * 2 * np.pi) * 10  # Daily trend
                 price_change = volatility + trend
                 current_price = base_price + price_change
             

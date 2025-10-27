@@ -19,19 +19,27 @@ from typing import Dict, List, Any
 import warnings
 warnings.filterwarnings('ignore')
 
+# Import MCX fetcher separately to ensure it works
 try:
     from src.mcx_data_fetcher import MCXDataFetcher
+    print("✓ MCX fetcher imported successfully")
+except ImportError as e:
+    print(f"Warning: Could not import MCX fetcher: {e}")
+    class MCXDataFetcher:
+        def get_live_price(self, commodity): return {'close': 0, 'change': 0, 'change_percent': 0}
+        def get_historical_data(self, commodity, period, interval): return pd.DataFrame()
+
+# Import other modules
+try:
     from src.yahoo_finance_fetcher import YahooFinanceFetcher
     from src.simple_confidence_scorer import SimpleConfidenceScorer
     from src.dashboard_data_service import DashboardDataService
     from src.live_trading_integration import LiveTradingIntegration
     from src.utils import get_logger
+    print("✓ Other modules imported successfully")
 except ImportError as e:
     print(f"Warning: Could not import some modules: {e}")
     # Create dummy classes for deployment
-    class MCXDataFetcher:
-        def get_live_price(self, commodity): return {'close': 0, 'change': 0, 'change_percent': 0}
-        def get_historical_data(self, commodity, period, interval): return pd.DataFrame()
     class YahooFinanceFetcher:
         def get_live_price(self, commodity): return {'close': 0, 'change': 0, 'change_percent': 0}
         def get_historical_data(self, commodity, period, interval): return pd.DataFrame()
@@ -212,7 +220,38 @@ def get_live_commodity_data(commodity):
                 logger.error(f"Error fetching gold data: {e}")
         
         elif commodity == 'SILVER':
-            # Try Yahoo Finance fetcher first, then fallback to direct yfinance
+            # Use MCX data fetcher for Indian Silver prices (no conversion needed)
+            try:
+                # Check if mcx_fetcher is properly initialized
+                if hasattr(mcx_fetcher, 'get_live_price'):
+                    mcx_data = mcx_fetcher.get_live_price('SILVER')
+                    logger.info(f"MCX Silver data: {mcx_data}")
+                    
+                    if mcx_data and mcx_data.get('close', 0) > 0:
+                        # MCX Silver prices are already in INR per kg
+                        price_per_kg = mcx_data.get('close', 0)
+                        
+                        logger.info(f"Using MCX Silver price: ₹{price_per_kg:,.2f} per kg")
+                        
+                        return {
+                            'close': price_per_kg,
+                            'change': mcx_data.get('change', 0),
+                            'change_percent': mcx_data.get('change_pct', 0),
+                            'volume': mcx_data.get('volume', 0),
+                            'symbol': 'SILVER',
+                            'name': 'Silver (₹/kg) - MCX',
+                            'usd_inr_rate': usd_inr_rate,
+                            'source': 'MCX',
+                            'contract_size': mcx_data.get('contract_size', '5 kg')
+                        }
+                    else:
+                        logger.warning("MCX Silver data returned empty or zero price")
+                else:
+                    logger.warning("MCX fetcher does not have get_live_price method")
+            except Exception as e:
+                logger.error(f"Error fetching MCX Silver data: {e}")
+            
+            # Fallback: Try Yahoo Finance fetcher
             try:
                 silver_data = yahoo_fetcher.get_live_price('SILVER')
                 price_inr = silver_data.get('close', 0)
@@ -225,13 +264,14 @@ def get_live_commodity_data(commodity):
                         'change_percent': silver_data.get('change_pct', 0),
                         'volume': silver_data.get('volume', 0),
                         'symbol': 'SILVER',
-                        'name': 'Silver (₹/kg)',
-                        'usd_inr_rate': usd_inr_rate
+                        'name': 'Silver (₹/kg) - Yahoo',
+                        'usd_inr_rate': usd_inr_rate,
+                        'source': 'Yahoo Finance'
                     }
             except:
                 pass
             
-            # Fallback: Get silver data directly using yfinance
+            # Final fallback: Get silver data directly using yfinance
             try:
                 import yfinance as yf
                 silver_ticker = yf.Ticker('SI=F')
@@ -255,15 +295,46 @@ def get_live_commodity_data(commodity):
                         'change_percent': float((latest_data['Close'] - prev_data['Close']) / prev_data['Close'] * 100),
                         'volume': int(latest_data['Volume']),
                         'symbol': 'SILVER',
-                        'name': 'Silver (₹/kg)',
-                        'usd_inr_rate': usd_inr_rate
+                        'name': 'Silver (₹/kg) - Converted',
+                        'usd_inr_rate': usd_inr_rate,
+                        'source': 'Yahoo Finance (Converted)'
                     }
             except Exception as e:
                 logger.error(f"Error fetching silver data: {e}")
         
         elif commodity == 'COPPER':
-            # For copper, we'll use a fallback approach since it's not in the predefined symbols
-            # Try to get copper data using yfinance directly
+            # Use MCX data fetcher for Indian Copper prices (no conversion needed)
+            try:
+                # Check if mcx_fetcher is properly initialized
+                if hasattr(mcx_fetcher, 'get_live_price'):
+                    mcx_data = mcx_fetcher.get_live_price('COPPER')
+                    logger.info(f"MCX Copper data: {mcx_data}")
+                    
+                    if mcx_data and mcx_data.get('close', 0) > 0:
+                        # MCX Copper prices are already in INR per kg
+                        price_per_kg = mcx_data.get('close', 0)
+                        
+                        logger.info(f"Using MCX Copper price: ₹{price_per_kg:,.2f} per kg")
+                        
+                        return {
+                            'close': price_per_kg,
+                            'change': mcx_data.get('change', 0),
+                            'change_percent': mcx_data.get('change_pct', 0),
+                            'volume': mcx_data.get('volume', 0),
+                            'symbol': 'COPPER',
+                            'name': 'Copper (₹/kg) - MCX',
+                            'usd_inr_rate': usd_inr_rate,
+                            'source': 'MCX',
+                            'contract_size': mcx_data.get('contract_size', '1 tonne')
+                        }
+                    else:
+                        logger.warning("MCX Copper data returned empty or zero price")
+                else:
+                    logger.warning("MCX fetcher does not have get_live_price method")
+            except Exception as e:
+                logger.error(f"Error fetching MCX Copper data: {e}")
+            
+            # Fallback: Try to get copper data using yfinance directly
             try:
                 import yfinance as yf
                 copper_ticker = yf.Ticker('HG=F')
@@ -297,9 +368,10 @@ def get_live_commodity_data(commodity):
                     'change_percent': copper_data.get('change_percent', 0),
                     'volume': copper_data.get('volume', 0),
                     'symbol': 'COPPER',
-                    'name': 'Copper (₹/kg)',
+                    'name': 'Copper (₹/kg) - Converted',
                     'usd_price_per_pound': price_per_pound,
-                    'usd_inr_rate': usd_inr_rate
+                    'usd_inr_rate': usd_inr_rate,
+                    'source': 'Yahoo Finance (Converted)'
                 }
         
         # Fallback
